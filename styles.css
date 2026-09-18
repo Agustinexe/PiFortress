@@ -1,0 +1,114 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    /* Fondo con gradiente verde agua/celeste simulando tu imagen */
+    background: linear-gradient(135deg, #cdeedd 0%, #b2dfe2 50%, #bcdde4 100%);
+    background-attachment: fixed;
+}
+
+.ventana-navegador {
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    width: 550px;
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+    transition: width 0.4s ease;
+}
+
+.barra-superior {
+    background: rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 12px;
+    display: flex;
+    gap: 5px;
+}
+
+.puntito {
+    width: 5px;
+    height: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+}
+
+.contenedor-formulario {
+    padding: 40px 60px;
+    text-align: center;
+}
+
+.campo {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    color: #2c4a3e;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    background-color: rgba(255, 255, 255, 0.65);
+    font-size: 14px;
+    color: #333;
+    box-sizing: border-box;
+}
+
+input:focus {
+    outline: none;
+    border-color: #5bb2a9;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.error-texto {
+    color: #b02a37;
+    font-size: 12px;
+    margin-top: 6px;
+    display: none;
+    font-weight: 500;
+}
+
+.contenedor-boton {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+button {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    padding: 8px 24px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background-color: #f5f5f5;
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+.mensaje-bienvenido {
+    color: #2c4a3e;
+    margin: 60px 0;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}

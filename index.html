@@ -1,0 +1,651 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Acceso Seguro al Sistema</title>
+
+    <link
+        rel="stylesheet"
+        href="/styles.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<div
+    class="ventana-navegador"
+    id="pantalla-login"
+>
+
+
+    <!-- ===============================
+         BARRA SUPERIOR
+    ================================ -->
+
+    <div class="barra-superior">
+
+        <div class="puntito"></div>
+        <div class="puntito"></div>
+        <div class="puntito"></div>
+        <div class="puntito"></div>
+
+    </div>
+
+
+    <!-- ===============================
+         FORMULARIO
+    ================================ -->
+
+    <div class="contenedor-formulario">
+
+
+        <form id="formulario-verificacion">
+
+
+            <!-- NOMBRE DE USUARIO -->
+
+            <div class="campo">
+
+                <label for="nombre_usuario">
+                    Nombre de usuario
+                </label>
+
+                <input
+                    type="text"
+                    id="nombre_usuario"
+                    required
+                >
+
+            </div>
+
+
+            <!-- CORREO ELECTRÓNICO -->
+
+            <div class="campo">
+
+                <label for="correo_electronico">
+                    Correo electrónico
+                </label>
+
+                <input
+                    type="email"
+                    id="correo_electronico"
+                    required
+                >
+
+            </div>
+
+
+            <!-- CLAVE -->
+
+            <div class="campo">
+
+                <label for="clave">
+                    Clave
+                </label>
+
+                <input
+                    type="password"
+                    id="clave"
+                    required
+                >
+
+            </div>
+
+
+            <!-- MENSAJE DE ERROR -->
+
+            <div
+                id="error-mensaje"
+                class="error-texto"
+            >
+                Alguno de los datos no coincide
+            </div>
+
+
+            <!-- BOTÓN -->
+
+            <div class="contenedor-boton">
+
+                <button type="submit">
+                    Siguiente
+                </button>
+
+            </div>
+
+
+        </form>
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+
+// ==========================================
+// FORMULARIO DE VERIFICACIÓN
+// ==========================================
+
+document
+    .getElementById('formulario-verificacion')
+    .addEventListener(
+        'submit',
+        async (e) => {
+
+            e.preventDefault();
+
+
+            // ==========================================
+            // OBTENER DATOS
+            // ==========================================
+
+            const datos = {
+
+                Nombre_usuario:
+                    document
+                        .getElementById(
+                            'nombre_usuario'
+                        )
+                        .value,
+
+                Correo_electronico:
+                    document
+                        .getElementById(
+                            'correo_electronico'
+                        )
+                        .value,
+
+                Clave:
+                    document
+                        .getElementById(
+                            'clave'
+                        )
+                        .value
+
+            };
+
+
+            const errorMensaje =
+                document.getElementById(
+                    'error-mensaje'
+                );
+
+
+            errorMensaje.style.display =
+                'none';
+
+
+            try {
+
+
+                // ==========================================
+                // ENVIAR DATOS AL SERVIDOR
+                // ==========================================
+
+                const respuesta =
+                    await fetch(
+                        '/verificar',
+                        {
+
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/json'
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    datos
+                                )
+
+                        }
+                    );
+
+
+                const resultado =
+                    await respuesta.json();
+
+
+                // ==========================================
+                // ACCESO CORRECTO
+                // ==========================================
+
+                if (resultado.valido) {
+
+
+                    document
+                        .getElementById(
+                            'pantalla-login'
+                        )
+                        .innerHTML = `
+
+
+                        <div class="barra-superior">
+
+                            <div class="puntito"></div>
+                            <div class="puntito"></div>
+                            <div class="puntito"></div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                padding: 20px;
+                                text-align: left;
+                            "
+                        >
+
+
+                            <h2
+                                style="
+                                    margin-top: 0;
+                                    color: #2c4a3e;
+                                "
+                            >
+                                Historial de Accesos
+                            </h2>
+
+
+                            <!-- =====================
+                                 FILTROS
+                            ====================== -->
+
+                            <div
+                                style="
+                                    display: flex;
+                                    gap: 10px;
+                                    margin-bottom: 20px;
+                                    flex-wrap: wrap;
+                                "
+                            >
+
+
+                                <input
+                                    type="date"
+                                    id="filtro-dia"
+                                    style="
+                                        width: auto;
+                                        flex: 1;
+                                    "
+                                >
+
+
+                                <input
+                                    type="text"
+                                    id="filtro-usuario"
+                                    style="
+                                        width: auto;
+                                        flex: 1;
+                                    "
+                                    placeholder="Buscar usuario..."
+                                >
+
+
+                                <input
+                                    type="text"
+                                    id="filtro-cambios"
+                                    style="
+                                        width: auto;
+                                        flex: 1;
+                                    "
+                                    placeholder="Filtrar por Cambios..."
+                                >
+
+
+                                <button
+                                    id="btn-filtrar"
+                                    style="
+                                        margin: 0;
+                                        padding: 10px 15px;
+                                    "
+                                >
+                                    Filtrar
+                                </button>
+
+
+                            </div>
+
+
+
+                            <!-- =====================
+                                 TABLA
+                            ====================== -->
+
+                            <div
+                                style="
+                                    max-height: 350px;
+                                    overflow-y: auto;
+                                "
+                            >
+
+
+                                <table
+                                    style="
+                                        width: 100%;
+                                        border-collapse:
+                                            collapse;
+                                        background:
+                                            rgba(
+                                                255,
+                                                255,
+                                                255,
+                                                0.4
+                                            );
+                                        font-size: 13px;
+                                    "
+                                >
+
+
+                                    <thead>
+
+
+                                        <tr
+                                            style="
+                                                background:
+                                                    rgba(
+                                                        0,
+                                                        0,
+                                                        0,
+                                                        0.05
+                                                    );
+                                                text-align:
+                                                    left;
+                                            "
+                                        >
+
+
+                                            <th
+                                                style="
+                                                    padding:
+                                                        10px;
+                                                    border-bottom:
+                                                        1px solid
+                                                        rgba(
+                                                            0,
+                                                            0,
+                                                            0,
+                                                            0.1
+                                                        );
+                                                "
+                                            >
+                                                Usuario
+                                            </th>
+
+
+                                            <th
+                                                style="
+                                                    padding:
+                                                        10px;
+                                                    border-bottom:
+                                                        1px solid
+                                                        rgba(
+                                                            0,
+                                                            0,
+                                                            0,
+                                                            0.1
+                                                        );
+                                                "
+                                            >
+                                                Día
+                                            </th>
+
+
+                                            <th
+                                                style="
+                                                    padding:
+                                                        10px;
+                                                    border-bottom:
+                                                        1px solid
+                                                        rgba(
+                                                            0,
+                                                            0,
+                                                            0,
+                                                            0.1
+                                                        );
+                                                "
+                                            >
+                                                Hora apertura
+                                            </th>
+                                            <th
+                                                style="
+                                                    padding: 10px;
+                                                    border-bottom: 1px solid rgba( 0, 0, 0, 0.1 );
+                                                "
+                                            >
+                                                Hora cierre
+                                            </th>
+                                            <th
+                                                style="
+                                                    padding: 10px;
+                                                    border-bottom: 1px solid rgba( 0, 0, 0, 0.1 );
+                                                "
+                                            >
+                                                Cambios
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody
+                                        id="tabla-cuerpo"
+                                    >
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    document
+                        .getElementById(
+                            'pantalla-login'
+                        )
+                        .style.width = "800px";
+                    async function
+                    cargarRegistros() {
+                        const dia =
+                            document
+                                .getElementById(
+                                    'filtro-dia'
+                                )
+                                .value;
+                        const usuario =
+                            document
+                                .getElementById(
+                                    'filtro-usuario'
+                                )
+                                .value;
+                        const cambios =
+                            document
+                                .getElementById(
+                                    'filtro-cambios'
+                                )
+                                .value;
+                        const res =
+                            await fetch(
+                                `/registros?` +
+                                `dia=${
+                                    encodeURIComponent(
+                                        dia
+                                    )
+                                }&` +
+                                `usuario=${
+                                    encodeURIComponent(
+                                        usuario
+                                    )
+                                }&` +
+                                `cambios=${
+                                    encodeURIComponent(
+                                        cambios
+                                    )
+                                }`
+                            );
+                        const registros =
+                            await res.json();
+                        const tbody =
+                            document.getElementById(
+                                'tabla-cuerpo'
+                            );
+                        tbody.innerHTML = '';
+                        if (
+                            !Array.isArray(
+                                registros
+                            ) ||
+                            registros.length === 0
+                        ) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td
+                                        colspan="5"
+                                        style="
+                                            padding: 15px;
+                                            text-align: center;
+                                            color: #666;
+                                        "
+                                    >
+                                        No hay movimientos
+                                        registrados con
+                                        esos filtros
+                                    </td>
+                                </tr>
+                            `;
+                            return;
+                        }
+                        registros.forEach(
+                            reg => {
+                                const fila =
+                                    document
+                                        .createElement(
+                                            'tr'
+                                        );
+                                fila.style.borderBottom =
+                                    "1px solid rgba(0,0,0,0.05)";
+                                const fechaFormateada =
+                                    reg.Fecha
+                                        ? String(
+                                            reg.Fecha
+                                        ).substring(
+                                            0,
+                                            10
+                                        )
+                                        : '---';
+                                const horaApertura =
+                                    reg.Horario_apertura ||
+                                    '---';
+                                const horaCierre =
+                                    reg.Horario_cierre ||
+                                    'Sin cerrar';
+                                fila.innerHTML = `
+                                    <td
+                                        style="
+                                            padding: 10px;
+                                        "
+                                    >
+                                        ${
+                                            reg.Nombre ||
+                                            'Desconocido'
+                                        }
+                                    </td>
+                                    <td
+                                        style="
+                                            padding: 10px;
+                                        "
+                                    >
+                                        ${
+                                            fechaFormateada
+                                        }
+                                    </td>
+                                    <td
+                                        style="
+                                            padding: 10px;
+                                            color: green;
+                                            font-weight: 500;
+                                        "
+                                    >
+                                        ${
+                                            horaApertura
+                                        }
+                                    </td>
+                                    <td
+                                        style="
+                                            padding: 10px;
+                                            color: #b02a37;
+                                            font-weight: 500;
+                                        "
+                                    >
+                                        ${
+                                            horaCierre
+                                        }
+                                    </td>
+                                    <td
+                                        style="
+                                            padding: 10px;
+                                            font-style: italic;
+                                            color: #555;
+                                        "
+                                    >
+                                        ${
+                                            reg.Cambios ||
+                                            '---'
+                                        }
+                                    </td>
+                                `;
+                                tbody.appendChild(
+                                    fila
+                                );
+                            }
+                        );
+                    }
+                    document
+                        .getElementById(
+                            'btn-filtrar'
+                        )
+                        .addEventListener(
+                            'click',
+                            cargarRegistros
+                        );
+                    cargarRegistros();
+                } else {
+                    errorMensaje.style.display =
+                        'block';
+
+                    document
+                        .getElementById(
+                            'clave'
+                        )
+                        .value = '';
+                }
+
+            } catch (error) {
+
+                console.error(
+                    '❌ Error de red:',
+                    error
+                );
+
+                errorMensaje.textContent =
+                    'No se pudo conectar con el servidor';
+
+                errorMensaje.style.display =
+                    'block';
+            }
+        }
+    );
+
+</script>
+</body>
+</html>
