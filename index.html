@@ -1,112 +1,72 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
-
     <title>Acceso Seguro al Sistema</title>
-
     <link
         rel="stylesheet"
         href="/styles.css"
     >
-
 </head>
-
-
 <body>
-
-
 <div
     class="ventana-navegador"
     id="pantalla-login"
 >
 
-
-    <!-- ===============================
-         BARRA SUPERIOR
-    ================================ -->
-
+    <!-- BARRA SUPERIOR -->
     <div class="barra-superior">
-
         <div class="puntito"></div>
         <div class="puntito"></div>
         <div class="puntito"></div>
         <div class="puntito"></div>
-
     </div>
-
-
-    <!-- ===============================
-         FORMULARIO
-    ================================ -->
-
-    <div class="contenedor-formulario">
-
-
+    
+    <!-- FORMULARIO DE LOGIN -->
+        <div class="contenedor-formulario">
         <form id="formulario-verificacion">
-
-
-            <!-- NOMBRE DE USUARIO -->
-
+            
+            <!-- NOMBRE -->
             <div class="campo">
-
                 <label for="nombre_usuario">
                     Nombre de usuario
                 </label>
-
                 <input
                     type="text"
                     id="nombre_usuario"
                     required
                 >
-
             </div>
-
-
-            <!-- CORREO ELECTRÓNICO -->
-
+            
+            <!-- CORREO -->
             <div class="campo">
-
                 <label for="correo_electronico">
                     Correo electrónico
                 </label>
-
                 <input
                     type="email"
                     id="correo_electronico"
                     required
                 >
-
             </div>
-
-
+            
             <!-- CLAVE -->
-
             <div class="campo">
-
                 <label for="clave">
                     Clave
                 </label>
-
                 <input
                     type="password"
                     id="clave"
                     required
                 >
-
             </div>
-
-
-            <!-- MENSAJE DE ERROR -->
-
+            
+            <!-- ERROR -->
             <div
                 id="error-mensaje"
                 class="error-texto"
@@ -114,538 +74,631 @@
                 Alguno de los datos no coincide
             </div>
 
-
             <!-- BOTÓN -->
-
             <div class="contenedor-boton">
-
                 <button type="submit">
                     Siguiente
                 </button>
-
             </div>
-
-
         </form>
-
     </div>
-
-
 </div>
-
-
-
 <script>
 
+// VARIABLES GLOBALES
+let sesionId = null;
+let usuarioActual = null;
 
-// ==========================================
-// FORMULARIO DE VERIFICACIÓN
-// ==========================================
-
+// FORMULARIO DE LOGIN
 document
     .getElementById('formulario-verificacion')
     .addEventListener(
         'submit',
         async (e) => {
-
             e.preventDefault();
 
-
-            // ==========================================
             // OBTENER DATOS
-            // ==========================================
-
             const datos = {
-
                 Nombre_usuario:
                     document
                         .getElementById(
                             'nombre_usuario'
                         )
                         .value,
-
                 Correo_electronico:
                     document
                         .getElementById(
                             'correo_electronico'
                         )
                         .value,
-
                 Clave:
                     document
                         .getElementById(
                             'clave'
                         )
                         .value
-
             };
-
-
             const errorMensaje =
                 document.getElementById(
                     'error-mensaje'
                 );
-
-
             errorMensaje.style.display =
                 'none';
-
-
             try {
 
-
-                // ==========================================
-                // ENVIAR DATOS AL SERVIDOR
-                // ==========================================
-
+                // ENVIAR AL SERVIDOR
                 const respuesta =
                     await fetch(
                         '/verificar',
                         {
-
                             method: 'POST',
-
                             headers: {
                                 'Content-Type':
                                     'application/json'
                             },
-
                             body:
                                 JSON.stringify(
                                     datos
                                 )
-
                         }
                     );
-
-
                 const resultado =
                     await respuesta.json();
 
-
-                // ==========================================
                 // ACCESO CORRECTO
-                // ==========================================
-
                 if (resultado.valido) {
-
-
-                    document
-                        .getElementById(
-                            'pantalla-login'
-                        )
-                        .innerHTML = `
-
-
-                        <div class="barra-superior">
-
-                            <div class="puntito"></div>
-                            <div class="puntito"></div>
-                            <div class="puntito"></div>
-
-                        </div>
-
-
-                        <div
-                            style="
-                                padding: 20px;
-                                text-align: left;
-                            "
-                        >
-
-
-                            <h2
-                                style="
-                                    margin-top: 0;
-                                    color: #2c4a3e;
-                                "
-                            >
-                                Historial de Accesos
-                            </h2>
-
-
-                            <!-- =====================
-                                 FILTROS
-                            ====================== -->
-
-                            <div
-                                style="
-                                    display: flex;
-                                    gap: 10px;
-                                    margin-bottom: 20px;
-                                    flex-wrap: wrap;
-                                "
-                            >
-
-
-                                <input
-                                    type="date"
-                                    id="filtro-dia"
-                                    style="
-                                        width: auto;
-                                        flex: 1;
-                                    "
-                                >
-
-
-                                <input
-                                    type="text"
-                                    id="filtro-usuario"
-                                    style="
-                                        width: auto;
-                                        flex: 1;
-                                    "
-                                    placeholder="Buscar usuario..."
-                                >
-
-
-                                <input
-                                    type="text"
-                                    id="filtro-cambios"
-                                    style="
-                                        width: auto;
-                                        flex: 1;
-                                    "
-                                    placeholder="Filtrar por Cambios..."
-                                >
-
-
-                                <button
-                                    id="btn-filtrar"
-                                    style="
-                                        margin: 0;
-                                        padding: 10px 15px;
-                                    "
-                                >
-                                    Filtrar
-                                </button>
-
-
-                            </div>
-
-
-
-                            <!-- =====================
-                                 TABLA
-                            ====================== -->
-
-                            <div
-                                style="
-                                    max-height: 350px;
-                                    overflow-y: auto;
-                                "
-                            >
-
-
-                                <table
-                                    style="
-                                        width: 100%;
-                                        border-collapse:
-                                            collapse;
-                                        background:
-                                            rgba(
-                                                255,
-                                                255,
-                                                255,
-                                                0.4
-                                            );
-                                        font-size: 13px;
-                                    "
-                                >
-
-
-                                    <thead>
-
-
-                                        <tr
-                                            style="
-                                                background:
-                                                    rgba(
-                                                        0,
-                                                        0,
-                                                        0,
-                                                        0.05
-                                                    );
-                                                text-align:
-                                                    left;
-                                            "
-                                        >
-
-
-                                            <th
-                                                style="
-                                                    padding:
-                                                        10px;
-                                                    border-bottom:
-                                                        1px solid
-                                                        rgba(
-                                                            0,
-                                                            0,
-                                                            0,
-                                                            0.1
-                                                        );
-                                                "
-                                            >
-                                                Usuario
-                                            </th>
-
-
-                                            <th
-                                                style="
-                                                    padding:
-                                                        10px;
-                                                    border-bottom:
-                                                        1px solid
-                                                        rgba(
-                                                            0,
-                                                            0,
-                                                            0,
-                                                            0.1
-                                                        );
-                                                "
-                                            >
-                                                Día
-                                            </th>
-
-
-                                            <th
-                                                style="
-                                                    padding:
-                                                        10px;
-                                                    border-bottom:
-                                                        1px solid
-                                                        rgba(
-                                                            0,
-                                                            0,
-                                                            0,
-                                                            0.1
-                                                        );
-                                                "
-                                            >
-                                                Hora apertura
-                                            </th>
-                                            <th
-                                                style="
-                                                    padding: 10px;
-                                                    border-bottom: 1px solid rgba( 0, 0, 0, 0.1 );
-                                                "
-                                            >
-                                                Hora cierre
-                                            </th>
-                                            <th
-                                                style="
-                                                    padding: 10px;
-                                                    border-bottom: 1px solid rgba( 0, 0, 0, 0.1 );
-                                                "
-                                            >
-                                                Cambios
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody
-                                        id="tabla-cuerpo"
-                                    >
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    `;
-                    document
-                        .getElementById(
-                            'pantalla-login'
-                        )
-                        .style.width = "800px";
-                    async function
-                    cargarRegistros() {
-                        const dia =
-                            document
-                                .getElementById(
-                                    'filtro-dia'
-                                )
-                                .value;
-                        const usuario =
-                            document
-                                .getElementById(
-                                    'filtro-usuario'
-                                )
-                                .value;
-                        const cambios =
-                            document
-                                .getElementById(
-                                    'filtro-cambios'
-                                )
-                                .value;
-                        const res =
-                            await fetch(
-                                `/registros?` +
-                                `dia=${
-                                    encodeURIComponent(
-                                        dia
-                                    )
-                                }&` +
-                                `usuario=${
-                                    encodeURIComponent(
-                                        usuario
-                                    )
-                                }&` +
-                                `cambios=${
-                                    encodeURIComponent(
-                                        cambios
-                                    )
-                                }`
-                            );
-                        const registros =
-                            await res.json();
-                        const tbody =
-                            document.getElementById(
-                                'tabla-cuerpo'
-                            );
-                        tbody.innerHTML = '';
-                        if (
-                            !Array.isArray(
-                                registros
-                            ) ||
-                            registros.length === 0
-                        ) {
-                            tbody.innerHTML = `
-                                <tr>
-                                    <td
-                                        colspan="5"
-                                        style="
-                                            padding: 15px;
-                                            text-align: center;
-                                            color: #666;
-                                        "
-                                    >
-                                        No hay movimientos
-                                        registrados con
-                                        esos filtros
-                                    </td>
-                                </tr>
-                            `;
-                            return;
-                        }
-                        registros.forEach(
-                            reg => {
-                                const fila =
-                                    document
-                                        .createElement(
-                                            'tr'
-                                        );
-                                fila.style.borderBottom =
-                                    "1px solid rgba(0,0,0,0.05)";
-                                const fechaFormateada =
-                                    reg.Fecha
-                                        ? String(
-                                            reg.Fecha
-                                        ).substring(
-                                            0,
-                                            10
-                                        )
-                                        : '---';
-                                const horaApertura =
-                                    reg.Horario_apertura ||
-                                    '---';
-                                const horaCierre =
-                                    reg.Horario_cierre ||
-                                    'Sin cerrar';
-                                fila.innerHTML = `
-                                    <td
-                                        style="
-                                            padding: 10px;
-                                        "
-                                    >
-                                        ${
-                                            reg.Nombre ||
-                                            'Desconocido'
-                                        }
-                                    </td>
-                                    <td
-                                        style="
-                                            padding: 10px;
-                                        "
-                                    >
-                                        ${
-                                            fechaFormateada
-                                        }
-                                    </td>
-                                    <td
-                                        style="
-                                            padding: 10px;
-                                            color: green;
-                                            font-weight: 500;
-                                        "
-                                    >
-                                        ${
-                                            horaApertura
-                                        }
-                                    </td>
-                                    <td
-                                        style="
-                                            padding: 10px;
-                                            color: #b02a37;
-                                            font-weight: 500;
-                                        "
-                                    >
-                                        ${
-                                            horaCierre
-                                        }
-                                    </td>
-                                    <td
-                                        style="
-                                            padding: 10px;
-                                            font-style: italic;
-                                            color: #555;
-                                        "
-                                    >
-                                        ${
-                                            reg.Cambios ||
-                                            '---'
-                                        }
-                                    </td>
-                                `;
-                                tbody.appendChild(
-                                    fila
-                                );
-                            }
-                        );
-                    }
-                    document
-                        .getElementById(
-                            'btn-filtrar'
-                        )
-                        .addEventListener(
-                            'click',
-                            cargarRegistros
-                        );
-                    cargarRegistros();
+                    sesionId =
+                        resultado.sesionId;
+                    usuarioActual =
+                        resultado.usuario;
+                    mostrarRegistros();
                 } else {
+                    errorMensaje.textContent =
+                        resultado.mensaje ||
+                        'Alguno de los datos no coincide';
                     errorMensaje.style.display =
                         'block';
-
                     document
                         .getElementById(
                             'clave'
                         )
                         .value = '';
                 }
-
             } catch (error) {
-
                 console.error(
                     '❌ Error de red:',
                     error
                 );
-
                 errorMensaje.textContent =
                     'No se pudo conectar con el servidor';
-
                 errorMensaje.style.display =
                     'block';
             }
         }
     );
 
+// MOSTRAR PANTALLA DE REGISTROS
+function mostrarRegistros() {
+    const cargo =
+        String(
+            usuarioActual.Cargo
+        )
+        .trim()
+        .toLowerCase();
+    const esAdministrador =
+        cargo === 'admin' ||
+        cargo === 'administrador';
+    document
+        .getElementById(
+            'pantalla-login'
+        )
+        .innerHTML = `
+        <div class="barra-superior">
+            <div class="puntito"></div>
+            <div class="puntito"></div>
+            <div class="puntito"></div>
+        </div>
+        <div class="contenedor-pantalla">
+            
+            <!-- ENCABEZADO -->
+            <div class="encabezado-pantalla">
+                <h2>
+                    Historial de Accesos
+                </h2>
+                ${
+                    esAdministrador
+                    ?
+                    `
+                    <button
+                        id="btn-usuarios"
+                        class="btn-accion"
+                    >
+                        Usuarios
+                    </button>
+                    `
+                    :
+                    ''
+                }
+            </div>
+            
+            <!-- FILTROS -->
+            <div class="contenedor-filtros">
+                <input
+                    type="date"
+                    id="filtro-dia"
+                >
+                <input
+                    type="text"
+                    id="filtro-usuario"
+                    placeholder="Buscar usuario..."
+                >
+                <input
+                    type="text"
+                    id="filtro-cambios"
+                    placeholder="Filtrar por Acciones..."
+                >
+                <button
+                    id="btn-filtrar"
+                    class="btn-filtrar"
+                >
+                    Filtrar
+                </button>
+            </div>
+
+            <!-- TABLA DE REGISTROS -->
+            <div class="contenedor-tabla">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>
+                                Usuario
+                            </th>
+                            <th>
+                                Fecha
+                            </th>
+                            <th>
+                                Hs. Ingreso
+                            </th>
+                            <th>
+                                Hs. Egreso
+                            </th>
+                            <th>
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-cuerpo">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    // ANCHO DE LA VENTANA
+    const pantalla =
+        document.getElementById(
+            'pantalla-login'
+        );
+    pantalla.classList.add(
+        'pantalla-registros'
+    );
+
+    // BOTÓN USUARIOS
+    if (esAdministrador) {
+        document
+            .getElementById(
+                'btn-usuarios'
+            )
+            .addEventListener(
+                'click',
+                mostrarUsuarios
+            );
+    }
+
+    // BOTÓN FILTRAR
+    document
+        .getElementById(
+            'btn-filtrar'
+        )
+        .addEventListener(
+            'click',
+            cargarRegistros
+        );
+
+    // CARGAR REGISTROS
+    cargarRegistros();
+}
+
+// CARGAR REGISTROS
+async function cargarRegistros() {
+    const dia =
+        document
+            .getElementById(
+                'filtro-dia'
+            )
+            .value;
+    const usuario =
+        document
+            .getElementById(
+                'filtro-usuario'
+            )
+            .value;
+    const cambios =
+        document
+            .getElementById(
+                'filtro-cambios'
+            )
+            .value;
+    try {
+        const respuesta =
+            await fetch(
+                `/registros?` +
+                `dia=${
+                    encodeURIComponent(
+                        dia
+                    )
+                }&` +
+                `usuario=${
+                    encodeURIComponent(
+                        usuario
+                    )
+                }&` +
+                `cambios=${
+                    encodeURIComponent(
+                        cambios
+                    )
+                }`
+            );
+        const registros =
+            await respuesta.json();
+        const tbody =
+            document.getElementById(
+                'tabla-cuerpo'
+            );
+        tbody.innerHTML = '';
+
+        // SIN REGISTROS
+        if (
+            !Array.isArray(
+                registros
+            ) ||
+            registros.length === 0
+        ) {
+            tbody.innerHTML = `
+                <tr>
+                    <td
+                        colspan="5"
+                        class="sin-registros"
+                    >
+                        No hay movimientos registrados con esos filtros
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // MOSTRAR REGISTROS
+        registros.forEach(
+            reg => {
+                const fila =
+                    document
+                        .createElement(
+                            'tr'
+                        );
+                const fecha =
+                    reg.Fecha
+                        ? String(
+                            reg.Fecha
+                        ).substring(
+                            0,
+                            10
+                        )
+                        : '---';
+                const apertura =
+                    reg.Horario_apertura ||
+                    '---';
+                const cierre =
+                    reg.Horario_cierre ||
+                    'Sin cerrar';
+                fila.innerHTML = `
+                    <td>
+                        ${
+                            reg.Nombre ||
+                            'Desconocido'
+                        }
+                    </td>
+                    <td>
+                        ${fecha}
+                    </td>
+                    <td class="hora-apertura">
+                        ${apertura}
+                    </td>
+                    <td class="hora-cierre">
+                        ${cierre}
+                    </td>
+                    <td class="cambios">
+                        ${
+                            reg.Cambios ||
+                            '---'
+                        }
+                    </td>
+                `;
+                tbody.appendChild(
+                    fila
+                );
+            }
+        );
+    } catch (error) {
+        console.error(
+            '❌ Error cargando registros:',
+            error
+        );
+    }
+}
+
+// MOSTRAR PANTALLA DE USUARIOS
+async function mostrarUsuarios() {
+    try {
+        const respuesta =
+            await fetch(
+                '/usuarios',
+                {
+                    headers: {
+                        'x-sesion-id':
+                            sesionId
+                    }
+                }
+            );
+        const usuarios =
+            await respuesta.json();
+        if (!respuesta.ok) {
+            alert(
+                usuarios.error ||
+                'No se pudieron cargar los usuarios'
+            );
+            return;
+        }
+
+        // CAMBIAR PANTALLA
+        const pantalla =
+            document.getElementById(
+                'pantalla-login'
+            );
+        pantalla.classList.remove(
+            'pantalla-registros'
+        );
+        pantalla.classList.add(
+            'pantalla-usuarios'
+        );
+        pantalla.innerHTML = `
+            <div class="barra-superior">
+                <div class="puntito"></div>
+                <div class="puntito"></div>
+                <div class="puntito"></div>
+            </div>
+            <div class="contenedor-pantalla">
+                <!-- ENCABEZADO -->
+                <div class="encabezado-pantalla">
+                    <h2>
+                        Usuarios
+                    </h2>
+                    <button
+                        id="btn-volver-registros"
+                        class="btn-accion"
+                    >
+                        Volver a registros
+                    </button>
+                </div>
+                <!-- TABLA DE USUARIOS -->
+                <div class="contenedor-tabla usuarios">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>
+                                    Usuario
+                                </th>
+                                <th>
+                                    Correo electrónico
+                                </th>
+                                <th>
+                                    Uid de tarjeta
+                                </th>
+                                <th class="centrado">
+                                    Estado
+                                </th>
+                                <th class="centrado">
+                                    Acción
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-usuarios">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        // BOTÓN VOLVER
+        document
+            .getElementById(
+                'btn-volver-registros'
+            )
+            .addEventListener(
+                'click',
+                mostrarRegistros
+            );
+        const tbody =
+            document.getElementById(
+                'tabla-usuarios'
+            );
+
+        // MOSTRAR USUARIOS
+        usuarios.forEach(
+            usuario => {
+                const fila =
+                    document.createElement(
+                        'tr'
+                    );
+                const habilitada =
+                    usuario.Habilitado ===
+                    'True';
+                const estado =
+                    habilitada
+                        ? 'Habilitada'
+                        : 'Deshabilitada';
+                const textoBoton =
+                    habilitada
+                        ? 'Deshabilitar'
+                        : 'Habilitar';
+                fila.innerHTML = `
+                    <!-- USUARIO -->
+                    <td>
+                        ${
+                            usuario.Nombre_usuario ||
+                            '---'
+                        }
+                    </td>
+                    <!-- CORREO -->
+                    <td>
+                        ${
+                            usuario.Correo_electronico ||
+                            '---'
+                        }
+                    </td>
+                    <!-- UID -->
+                    <td class="uid-tarjeta">
+                        ${
+                            usuario.Uid_tarjeta ||
+                            'Sin tarjeta'
+                        }
+                    </td>
+                    <!-- ESTADO -->
+                    <td class="estado-tarjeta centrado">
+                        ${estado}
+                    </td>
+                    <!-- BOTÓN -->
+                    <td class="centrado">
+                        ${
+                            usuario.Uid_tarjeta
+                            ?
+                            `
+                            <button
+                                class="btn-cambiar-tarjeta"
+                                data-uid="${
+                                    encodeURIComponent(
+                                        usuario.Uid_tarjeta
+                                    )
+                                }"
+                                data-estado="${
+                                    habilitada
+                                }"
+                            >
+                                ${textoBoton}
+                            </button>
+                            `
+                            :
+                            `
+                            <span class="sin-tarjeta">
+                                Sin tarjeta
+                            </span>
+                            `
+                        }
+                    </td>
+                `;
+                tbody.appendChild(
+                    fila
+                );
+            }
+        );
+
+        // ASIGNAR EVENTOS A BOTONES
+        document
+            .querySelectorAll(
+                '.btn-cambiar-tarjeta'
+            )
+            .forEach(
+                boton => {
+                    boton.addEventListener(
+                        'click',
+                        async () => {
+                            const uid =
+                                decodeURIComponent(
+                                    boton.dataset.uid
+                                );
+                            const estadoActual =
+                                boton.dataset.estado ===
+                                'true';
+                            const nuevoEstado =
+                                !estadoActual;
+                            await cambiarEstadoTarjeta(
+                                uid,
+                                nuevoEstado
+                            );
+                        }
+                    );
+                }
+            );
+    } catch (error) {
+        console.error(
+            '❌ Error cargando usuarios:',
+            error
+        );
+        alert(
+            'No se pudieron cargar los usuarios'
+        );
+    }
+}
+
+// CAMBIAR ESTADO DE TARJETA
+async function cambiarEstadoTarjeta(
+    uid,
+    nuevoEstado
+) {
+    try {
+        const respuesta =
+            await fetch(
+                `/usuarios/${encodeURIComponent(uid)}/tarjeta`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type':
+                            'application/json',
+                        'x-sesion-id':
+                            sesionId
+                    },
+                    body:
+                        JSON.stringify({
+                            habilitado:
+                                nuevoEstado
+                        })
+                }
+            );
+        const resultado =
+            await respuesta.json();
+        if (!respuesta.ok) {
+            alert(
+                resultado.error ||
+                'No se pudo cambiar el estado'
+            );
+            return;
+        }
+
+        // ACTUALIZACIÓN EXITOSA
+        console.log(
+            '✅ Tarjeta actualizada:',
+            resultado.Habilitado
+        );
+        mostrarUsuarios();
+    } catch (error) {
+        console.error(
+            '❌ Error cambiando tarjeta:',
+            error
+        );
+        alert(
+            'No se pudo conectar con el servidor'
+        );
+    }
+}
 </script>
 </body>
 </html>
