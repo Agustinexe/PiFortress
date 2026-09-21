@@ -1,213 +1,694 @@
 <!DOCTYPE html>
+
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-    <title>Acceso Seguro al Sistema</title>
-    <link
-        rel="stylesheet"
-        href="/styles.css"
-    >
+
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Acceso Seguro al Sistema</title>
+
+<link
+    rel="stylesheet"
+    href="/styles.css"
+>
+
+
 </head>
+
 <body>
+
 <div
     class="ventana-navegador"
     id="pantalla-login"
 >
 
-    <!-- BARRA SUPERIOR -->
-    <div class="barra-superior">
-        <div class="puntito"></div>
-        <div class="puntito"></div>
-        <div class="puntito"></div>
-        <div class="puntito"></div>
-    </div>
-    
-    <!-- FORMULARIO DE LOGIN -->
-        <div class="contenedor-formulario">
-        <form id="formulario-verificacion">
-            
-            <!-- NOMBRE -->
-            <div class="campo">
-                <label for="nombre_usuario">
-                    Nombre de usuario
-                </label>
-                <input
-                    type="text"
-                    id="nombre_usuario"
-                    required
-                >
-            </div>
-            
-            <!-- CORREO -->
-            <div class="campo">
-                <label for="correo_electronico">
-                    Correo electrónico
-                </label>
-                <input
-                    type="email"
-                    id="correo_electronico"
-                    required
-                >
-            </div>
-            
-            <!-- CLAVE -->
-            <div class="campo">
-                <label for="clave">
-                    Clave
-                </label>
-                <input
-                    type="password"
-                    id="clave"
-                    required
-                >
-            </div>
-            
-            <!-- ERROR -->
-            <div
-                id="error-mensaje"
-                class="error-texto"
-            >
-                Alguno de los datos no coincide
-            </div>
+<div class="barra-superior">
 
-            <!-- BOTÓN -->
-            <div class="contenedor-boton">
-                <button type="submit">
-                    Siguiente
-                </button>
-            </div>
-        </form>
-    </div>
+    <div class="puntito"></div>
+    <div class="puntito"></div>
+    <div class="puntito"></div>
+    <div class="puntito"></div>
+
 </div>
+
+<div class="contenedor-formulario">
+
+    <form id="formulario-verificacion">
+
+        <div class="campo">
+
+            <label for="nombre_usuario">
+                Nombre de usuario
+            </label>
+
+            <input
+                type="text"
+                id="nombre_usuario"
+                required
+            >
+
+        </div>
+
+        <div class="campo">
+
+            <label for="correo_electronico">
+                Correo electrónico
+            </label>
+
+            <input
+                type="email"
+                id="correo_electronico"
+                required
+            >
+
+        </div>
+
+        <div class="campo">
+
+            <label for="clave">
+                Clave
+            </label>
+
+            <input
+                type="password"
+                id="clave"
+                required
+            >
+
+        </div>
+
+        <div
+            id="error-mensaje"
+            class="error-texto"
+        >
+            Alguno de los datos no coincide
+        </div>
+
+        <div class="contenedor-botones-login">
+
+            <button type="submit">
+                Siguiente
+            </button>
+
+            <button
+                type="button"
+                id="btn-crear-cuenta"
+            >
+                Crear cuenta
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+</div>
+
 <script>
 
+// =====================================================
 // VARIABLES GLOBALES
+// =====================================================
+
 let sesionId = null;
 let usuarioActual = null;
 
+// =====================================================
+// BOTÓN CREAR CUENTA
+// =====================================================
+
+document
+    .getElementById('btn-crear-cuenta')
+    .addEventListener(
+        'click',
+        mostrarCrearCuenta
+    );
+
+// =====================================================
 // FORMULARIO DE LOGIN
+// =====================================================
+
 document
     .getElementById('formulario-verificacion')
     .addEventListener(
         'submit',
         async (e) => {
+
             e.preventDefault();
 
-            // OBTENER DATOS
             const datos = {
+
                 Nombre_usuario:
                     document
                         .getElementById(
                             'nombre_usuario'
                         )
                         .value,
+
                 Correo_electronico:
                     document
                         .getElementById(
                             'correo_electronico'
                         )
                         .value,
+
                 Clave:
                     document
                         .getElementById(
                             'clave'
                         )
                         .value
+
             };
+
             const errorMensaje =
                 document.getElementById(
                     'error-mensaje'
                 );
+
             errorMensaje.style.display =
                 'none';
+
             try {
 
-                // ENVIAR AL SERVIDOR
                 const respuesta =
                     await fetch(
                         '/verificar',
                         {
+
                             method: 'POST',
+
                             headers: {
                                 'Content-Type':
                                     'application/json'
                             },
+
                             body:
                                 JSON.stringify(
                                     datos
                                 )
+
                         }
                     );
+
                 const resultado =
                     await respuesta.json();
 
-                // ACCESO CORRECTO
                 if (resultado.valido) {
+
                     sesionId =
                         resultado.sesionId;
+
                     usuarioActual =
                         resultado.usuario;
+
                     mostrarRegistros();
+
                 } else {
+
                     errorMensaje.textContent =
                         resultado.mensaje ||
                         'Alguno de los datos no coincide';
+
                     errorMensaje.style.display =
                         'block';
+
                     document
                         .getElementById(
                             'clave'
                         )
                         .value = '';
+
                 }
+
             } catch (error) {
+
                 console.error(
                     '❌ Error de red:',
                     error
                 );
+
                 errorMensaje.textContent =
                     'No se pudo conectar con el servidor';
+
                 errorMensaje.style.display =
                     'block';
+
             }
+
         }
     );
 
+// =====================================================
+// MOSTRAR PANTALLA CREAR CUENTA
+// =====================================================
+
+async function mostrarCrearCuenta() {
+
+    const pantalla =
+        document.getElementById(
+            'pantalla-login'
+        );
+
+    try {
+
+        const respuesta =
+            await fetch(
+                '/tarjetas-disponibles'
+            );
+
+        const tarjetas =
+            await respuesta.json();
+
+        if (!respuesta.ok) {
+
+            alert(
+                tarjetas.error ||
+                'No se pudieron cargar las tarjetas'
+            );
+
+            return;
+
+        }
+
+        pantalla.classList.remove(
+            'pantalla-registros',
+            'pantalla-usuarios',
+            'pantalla-cargar-tarjeta'
+        );
+
+        pantalla.classList.add(
+            'pantalla-crear-cuenta'
+        );
+
+        pantalla.innerHTML = `
+
+            <div class="barra-superior">
+
+                <div class="puntito"></div>
+                <div class="puntito"></div>
+                <div class="puntito"></div>
+
+            </div>
+
+            <div class="contenedor-pantalla">
+
+                <div class="encabezado-pantalla">
+
+                    <h2>
+                        Crear cuenta
+                    </h2>
+
+                </div>
+
+                <form
+                    id="formulario-crear-cuenta"
+                    class="formulario-cuenta"
+                >
+
+                    <div class="campo">
+
+                        <label for="nuevo-nombre">
+                            Nombre de usuario
+                        </label>
+
+                        <input
+                            type="text"
+                            id="nuevo-nombre"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="nuevo-cargo">
+                            Cargo
+                        </label>
+
+                        <input
+                            type="text"
+                            id="nuevo-cargo"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="nuevo-correo">
+                            Correo electrónico
+                        </label>
+
+                        <input
+                            type="email"
+                            id="nuevo-correo"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="nueva-clave">
+                            Clave
+                        </label>
+
+                        <input
+                            type="password"
+                            id="nueva-clave"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="nueva-tarjeta">
+                            Tarjeta disponible
+                        </label>
+
+                        <select
+                            id="nueva-tarjeta"
+                            required
+                        >
+
+                            <option value="">
+                                Seleccionar tarjeta
+                            </option>
+
+                            ${
+                                tarjetas.length > 0
+
+                                ?
+
+                                tarjetas.map(
+                                    tarjeta => `
+                                        <option
+                                            value="${tarjeta.Uid_tarjeta}"
+                                        >
+                                            ${tarjeta.Uid_tarjeta}
+                                        </option>
+                                    `
+                                ).join('')
+
+                                :
+
+                                `
+                                <option value="">
+                                    No hay tarjetas disponibles
+                                </option>
+                                `
+                            }
+
+                        </select>
+
+                    </div>
+
+                    <div
+                        id="mensaje-crear-cuenta"
+                        class="mensaje-tarjeta"
+                    ></div>
+
+                    <div class="botones-formulario">
+
+                        <button
+                            type="button"
+                            id="btn-volver-login"
+                        >
+                            Volver al login
+                        </button>
+
+                        <button
+                            type="submit"
+                        >
+                            Crear cuenta
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        `;
+
+        document
+            .getElementById(
+                'btn-volver-login'
+            )
+            .addEventListener(
+                'click',
+                mostrarLogin
+            );
+
+        document
+            .getElementById(
+                'formulario-crear-cuenta'
+            )
+            .addEventListener(
+                'submit',
+                crearCuenta
+            );
+
+    } catch (error) {
+
+        console.error(
+            '❌ Error cargando pantalla de registro:',
+            error
+        );
+
+        alert(
+            'No se pudieron cargar las tarjetas'
+        );
+
+    }
+
+}
+
+// =====================================================
+// VOLVER AL LOGIN
+// =====================================================
+
+function mostrarLogin() {
+
+    location.reload();
+
+}
+
+// =====================================================
+// CREAR CUENTA
+// =====================================================
+
+async function crearCuenta(e) {
+
+    e.preventDefault();
+
+    const nombre =
+        document
+            .getElementById(
+                'nuevo-nombre'
+            )
+            .value
+            .trim();
+
+    const cargo =
+        document
+            .getElementById(
+                'nuevo-cargo'
+            )
+            .value
+            .trim();
+
+    const correo =
+        document
+            .getElementById(
+                'nuevo-correo'
+            )
+            .value
+            .trim();
+
+    const clave =
+        document
+            .getElementById(
+                'nueva-clave'
+            )
+            .value;
+
+    const tarjeta =
+        document
+            .getElementById(
+                'nueva-tarjeta'
+            )
+            .value;
+
+    const mensaje =
+        document.getElementById(
+            'mensaje-crear-cuenta'
+        );
+
+    mensaje.className =
+        'mensaje-tarjeta';
+
+    mensaje.textContent =
+        '';
+
+    try {
+
+        const respuesta =
+            await fetch(
+                '/crear-cuenta',
+                {
+
+                    method: 'POST',
+
+                    headers: {
+
+                        'Content-Type':
+                            'application/json'
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            Nombre_usuario:
+                                nombre,
+
+                            Cargo:
+                                cargo,
+
+                            Correo_electronico:
+                                correo,
+
+                            Clave:
+                                clave,
+
+                            Uid_tarjeta:
+                                tarjeta
+
+                        })
+
+                }
+            );
+
+        const resultado =
+            await respuesta.json();
+
+        if (!respuesta.ok) {
+
+            mensaje.classList.add(
+                'mensaje-error'
+            );
+
+            mensaje.textContent =
+                resultado.mensaje ||
+                'No se pudo crear la cuenta';
+
+            return;
+
+        }
+
+        mensaje.classList.add(
+            'mensaje-exito'
+        );
+
+        mensaje.textContent =
+            'Cuenta creada correctamente';
+
+        console.log(
+            '✅ Cuenta creada:',
+            resultado
+        );
+
+        setTimeout(
+            () => {
+
+                mostrarLogin();
+
+            },
+            1200
+        );
+
+    } catch (error) {
+
+        console.error(
+            '❌ Error creando cuenta:',
+            error
+        );
+
+        mensaje.classList.add(
+            'mensaje-error'
+        );
+
+        mensaje.textContent =
+            'No se pudo conectar con el servidor';
+
+    }
+
+}
+
+// =====================================================
 // MOSTRAR PANTALLA DE REGISTROS
+// =====================================================
+
 function mostrarRegistros() {
+
     const cargo =
         String(
             usuarioActual.Cargo
         )
         .trim()
         .toLowerCase();
+
     const esAdministrador =
         cargo === 'admin' ||
         cargo === 'administrador';
-    document
-        .getElementById(
+
+    const pantalla =
+        document.getElementById(
             'pantalla-login'
-        )
-        .innerHTML = `
+        );
+
+    pantalla.classList.remove(
+        'pantalla-usuarios',
+        'pantalla-cargar-tarjeta'
+    );
+
+    pantalla.classList.add(
+        'pantalla-registros'
+    );
+
+    pantalla.innerHTML = `
+
         <div class="barra-superior">
+
             <div class="puntito"></div>
             <div class="puntito"></div>
             <div class="puntito"></div>
+
         </div>
+
         <div class="contenedor-pantalla">
-            
-            <!-- ENCABEZADO -->
+
             <div class="encabezado-pantalla">
+
                 <h2>
                     Historial de Accesos
                 </h2>
+
                 ${
                     esAdministrador
                     ?
+
                     `
                     <button
                         id="btn-usuarios"
@@ -216,75 +697,86 @@ function mostrarRegistros() {
                         Usuarios
                     </button>
                     `
+
                     :
+
                     ''
                 }
+
             </div>
-            
-            <!-- FILTROS -->
+
             <div class="contenedor-filtros">
+
                 <input
                     type="date"
                     id="filtro-dia"
                 >
+
                 <input
                     type="text"
                     id="filtro-usuario"
                     placeholder="Buscar usuario..."
                 >
+
                 <input
                     type="text"
                     id="filtro-cambios"
-                    placeholder="Filtrar por Acciones..."
+                    placeholder="Filtrar por Cambios..."
                 >
+
                 <button
                     id="btn-filtrar"
                     class="btn-filtrar"
                 >
                     Filtrar
                 </button>
+
             </div>
 
-            <!-- TABLA DE REGISTROS -->
             <div class="contenedor-tabla">
+
                 <table class="tabla">
+
                     <thead>
+
                         <tr>
+
                             <th>
                                 Usuario
                             </th>
+
                             <th>
-                                Fecha
+                                Día
                             </th>
+
                             <th>
                                 Hs. Ingreso
                             </th>
+
                             <th>
                                 Hs. Egreso
                             </th>
+
                             <th>
-                                Acciones
+                                Cambios
                             </th>
+
                         </tr>
+
                     </thead>
-                    <tbody id="tabla-cuerpo">
-                    </tbody>
+
+                    <tbody id="tabla-cuerpo"></tbody>
+
                 </table>
+
             </div>
+
         </div>
+
     `;
 
-    // ANCHO DE LA VENTANA
-    const pantalla =
-        document.getElementById(
-            'pantalla-login'
-        );
-    pantalla.classList.add(
-        'pantalla-registros'
-    );
-
-    // BOTÓN USUARIOS
     if (esAdministrador) {
+
         document
             .getElementById(
                 'btn-usuarios'
@@ -293,9 +785,9 @@ function mostrarRegistros() {
                 'click',
                 mostrarUsuarios
             );
+
     }
 
-    // BOTÓN FILTRAR
     document
         .getElementById(
             'btn-filtrar'
@@ -305,86 +797,110 @@ function mostrarRegistros() {
             cargarRegistros
         );
 
-    // CARGAR REGISTROS
     cargarRegistros();
+
 }
 
+// =====================================================
 // CARGAR REGISTROS
+// =====================================================
+
 async function cargarRegistros() {
+
     const dia =
         document
             .getElementById(
                 'filtro-dia'
             )
             .value;
+
     const usuario =
         document
             .getElementById(
                 'filtro-usuario'
             )
             .value;
+
     const cambios =
         document
             .getElementById(
                 'filtro-cambios'
             )
             .value;
+
     try {
+
         const respuesta =
             await fetch(
+
                 `/registros?` +
+
                 `dia=${
                     encodeURIComponent(
                         dia
                     )
                 }&` +
+
                 `usuario=${
                     encodeURIComponent(
                         usuario
                     )
                 }&` +
+
                 `cambios=${
                     encodeURIComponent(
                         cambios
                     )
                 }`
+
             );
+
         const registros =
             await respuesta.json();
+
         const tbody =
             document.getElementById(
                 'tabla-cuerpo'
             );
+
         tbody.innerHTML = '';
 
-        // SIN REGISTROS
         if (
             !Array.isArray(
                 registros
             ) ||
             registros.length === 0
         ) {
+
             tbody.innerHTML = `
+
                 <tr>
+
                     <td
                         colspan="5"
                         class="sin-registros"
                     >
-                        No hay movimientos registrados con esos filtros
+                        No hay movimientos
+                        registrados con esos filtros
                     </td>
+
                 </tr>
+
             `;
+
             return;
+
         }
 
-        // MOSTRAR REGISTROS
         registros.forEach(
             reg => {
+
                 const fila =
                     document
                         .createElement(
                             'tr'
                         );
+
                 const fecha =
                     reg.Fecha
                         ? String(
@@ -394,51 +910,71 @@ async function cargarRegistros() {
                             10
                         )
                         : '---';
+
                 const apertura =
                     reg.Horario_apertura ||
                     '---';
+
                 const cierre =
                     reg.Horario_cierre ||
                     'Sin cerrar';
+
                 fila.innerHTML = `
+
                     <td>
                         ${
                             reg.Nombre ||
                             'Desconocido'
                         }
                     </td>
+
                     <td>
                         ${fecha}
                     </td>
+
                     <td class="hora-apertura">
                         ${apertura}
                     </td>
+
                     <td class="hora-cierre">
                         ${cierre}
                     </td>
+
                     <td class="cambios">
                         ${
                             reg.Cambios ||
                             '---'
                         }
                     </td>
+
                 `;
+
                 tbody.appendChild(
                     fila
                 );
+
             }
         );
+
     } catch (error) {
+
         console.error(
             '❌ Error cargando registros:',
             error
         );
+
     }
+
 }
 
+// =====================================================
 // MOSTRAR PANTALLA DE USUARIOS
+// =====================================================
+
 async function mostrarUsuarios() {
+
     try {
+
         const respuesta =
             await fetch(
                 '/usuarios',
@@ -449,76 +985,124 @@ async function mostrarUsuarios() {
                     }
                 }
             );
+
         const usuarios =
             await respuesta.json();
+
         if (!respuesta.ok) {
+
             alert(
                 usuarios.error ||
                 'No se pudieron cargar los usuarios'
             );
+
             return;
+
         }
 
-        // CAMBIAR PANTALLA
         const pantalla =
             document.getElementById(
                 'pantalla-login'
             );
+
         pantalla.classList.remove(
-            'pantalla-registros'
+            'pantalla-registros',
+            'pantalla-cargar-tarjeta'
         );
+
         pantalla.classList.add(
             'pantalla-usuarios'
         );
+
         pantalla.innerHTML = `
+
             <div class="barra-superior">
+
                 <div class="puntito"></div>
                 <div class="puntito"></div>
                 <div class="puntito"></div>
+
             </div>
+
             <div class="contenedor-pantalla">
-                <!-- ENCABEZADO -->
+
                 <div class="encabezado-pantalla">
+
                     <h2>
                         Usuarios
                     </h2>
-                    <button
-                        id="btn-volver-registros"
-                        class="btn-accion"
-                    >
-                        Volver a registros
-                    </button>
+
+                    <div class="grupo-botones">
+
+                        <button
+                            id="btn-cargar-tarjeta"
+                            class="btn-accion"
+                        >
+                            Cargar nueva tarjeta
+                        </button>
+
+                        <button
+                            id="btn-volver-registros"
+                            class="btn-accion"
+                        >
+                            Volver a registros
+                        </button>
+
+                    </div>
+
                 </div>
-                <!-- TABLA DE USUARIOS -->
+
                 <div class="contenedor-tabla usuarios">
+
                     <table class="tabla">
+
                         <thead>
+
                             <tr>
+
                                 <th>
                                     Usuario
                                 </th>
+
                                 <th>
                                     Correo electrónico
                                 </th>
+
                                 <th>
                                     Uid de tarjeta
                                 </th>
+
                                 <th class="centrado">
                                     Estado
                                 </th>
+
                                 <th class="centrado">
                                     Acción
                                 </th>
+
                             </tr>
+
                         </thead>
-                        <tbody id="tabla-usuarios">
-                        </tbody>
+
+                        <tbody id="tabla-usuarios"></tbody>
+
                     </table>
+
                 </div>
+
             </div>
+
         `;
 
-        // BOTÓN VOLVER
+        document
+            .getElementById(
+                'btn-cargar-tarjeta'
+            )
+            .addEventListener(
+                'click',
+                mostrarFormularioNuevaTarjeta
+            );
+
         document
             .getElementById(
                 'btn-volver-registros'
@@ -527,60 +1111,68 @@ async function mostrarUsuarios() {
                 'click',
                 mostrarRegistros
             );
+
         const tbody =
             document.getElementById(
                 'tabla-usuarios'
             );
 
-        // MOSTRAR USUARIOS
         usuarios.forEach(
             usuario => {
+
                 const fila =
                     document.createElement(
                         'tr'
                     );
+
                 const habilitada =
                     usuario.Habilitado ===
                     'True';
+
                 const estado =
                     habilitada
                         ? 'Habilitada'
                         : 'Deshabilitada';
+
                 const textoBoton =
                     habilitada
                         ? 'Deshabilitar'
                         : 'Habilitar';
+
                 fila.innerHTML = `
-                    <!-- USUARIO -->
+
                     <td>
                         ${
                             usuario.Nombre_usuario ||
                             '---'
                         }
                     </td>
-                    <!-- CORREO -->
+
                     <td>
                         ${
                             usuario.Correo_electronico ||
                             '---'
                         }
                     </td>
-                    <!-- UID -->
+
                     <td class="uid-tarjeta">
                         ${
                             usuario.Uid_tarjeta ||
                             'Sin tarjeta'
                         }
                     </td>
-                    <!-- ESTADO -->
+
                     <td class="estado-tarjeta centrado">
                         ${estado}
                     </td>
-                    <!-- BOTÓN -->
+
                     <td class="centrado">
+
                         ${
                             usuario.Uid_tarjeta
+
                             ?
+
                             `
                             <button
                                 class="btn-cambiar-tarjeta"
@@ -596,109 +1188,387 @@ async function mostrarUsuarios() {
                                 ${textoBoton}
                             </button>
                             `
+
                             :
+
                             `
                             <span class="sin-tarjeta">
                                 Sin tarjeta
                             </span>
                             `
+
                         }
+
                     </td>
+
                 `;
+
                 tbody.appendChild(
                     fila
                 );
+
             }
         );
 
-        // ASIGNAR EVENTOS A BOTONES
         document
             .querySelectorAll(
                 '.btn-cambiar-tarjeta'
             )
             .forEach(
                 boton => {
+
                     boton.addEventListener(
                         'click',
                         async () => {
+
                             const uid =
                                 decodeURIComponent(
                                     boton.dataset.uid
                                 );
+
                             const estadoActual =
                                 boton.dataset.estado ===
                                 'true';
+
                             const nuevoEstado =
                                 !estadoActual;
+
                             await cambiarEstadoTarjeta(
                                 uid,
                                 nuevoEstado
                             );
+
                         }
                     );
+
                 }
             );
+
     } catch (error) {
+
         console.error(
             '❌ Error cargando usuarios:',
             error
         );
+
         alert(
             'No se pudieron cargar los usuarios'
         );
+
     }
+
 }
 
+// =====================================================
+// MOSTRAR FORMULARIO DE NUEVA TARJETA
+// =====================================================
+
+function mostrarFormularioNuevaTarjeta() {
+
+    const pantalla =
+        document.getElementById(
+            'pantalla-login'
+        );
+
+    pantalla.classList.remove(
+        'pantalla-registros',
+        'pantalla-usuarios'
+    );
+
+    pantalla.classList.add(
+        'pantalla-cargar-tarjeta'
+    );
+
+    pantalla.innerHTML = `
+
+        <div class="barra-superior">
+
+            <div class="puntito"></div>
+            <div class="puntito"></div>
+            <div class="puntito"></div>
+
+        </div>
+
+        <div class="contenedor-pantalla">
+
+            <div class="encabezado-pantalla">
+
+                <h2>
+                    Cargar nueva tarjeta
+                </h2>
+
+            </div>
+
+            <form
+                id="formulario-nueva-tarjeta"
+                class="formulario-tarjeta"
+            >
+
+                <div class="campo">
+
+                    <label for="uid_nueva_tarjeta">
+                        UID de tarjeta
+                    </label>
+
+                    <input
+                        type="text"
+                        id="uid_nueva_tarjeta"
+                        required
+                        autocomplete="off"
+                        placeholder="Ingresá el UID de la tarjeta"
+                    >
+
+                </div>
+
+                <div
+                    id="mensaje-tarjeta"
+                    class="mensaje-tarjeta"
+                ></div>
+
+                <div class="botones-formulario">
+
+                    <button
+                        type="button"
+                        id="btn-cancelar-tarjeta"
+                    >
+                        Cancelar
+                    </button>
+
+                    <button type="submit">
+                        Guardar tarjeta
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    `;
+
+    document
+        .getElementById(
+            'btn-cancelar-tarjeta'
+        )
+        .addEventListener(
+            'click',
+            mostrarUsuarios
+        );
+
+    document
+        .getElementById(
+            'formulario-nueva-tarjeta'
+        )
+        .addEventListener(
+            'submit',
+            guardarNuevaTarjeta
+        );
+
+    document
+        .getElementById(
+            'uid_nueva_tarjeta'
+        )
+        .focus();
+
+}
+
+// =====================================================
+// GUARDAR NUEVA TARJETA
+// =====================================================
+
+async function guardarNuevaTarjeta(e) {
+
+    e.preventDefault();
+
+    const uid =
+        document
+            .getElementById(
+                'uid_nueva_tarjeta'
+            )
+            .value
+            .trim();
+
+    const mensaje =
+        document.getElementById(
+            'mensaje-tarjeta'
+        );
+
+    mensaje.className =
+        'mensaje-tarjeta';
+
+    mensaje.textContent =
+        '';
+
+    if (!uid) {
+
+        mensaje.classList.add(
+            'mensaje-error'
+        );
+
+        mensaje.textContent =
+            'Debés ingresar el UID de la tarjeta';
+
+        return;
+
+    }
+
+    try {
+
+        const respuesta =
+            await fetch(
+                '/usuarios/tarjetas',
+                {
+
+                    method: 'POST',
+
+                    headers: {
+
+                        'Content-Type':
+                            'application/json',
+
+                        'x-sesion-id':
+                            sesionId
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            Uid_tarjeta:
+                                uid
+
+                        })
+
+                }
+            );
+
+        const resultado =
+            await respuesta.json();
+
+        if (!respuesta.ok) {
+
+            mensaje.classList.add(
+                'mensaje-error'
+            );
+
+            mensaje.textContent =
+                resultado.error ||
+                'No se pudo cargar la tarjeta';
+
+            return;
+
+        }
+
+        mensaje.classList.add(
+            'mensaje-exito'
+        );
+
+        mensaje.textContent =
+            'Tarjeta cargada correctamente';
+
+        setTimeout(
+            () => {
+
+                mostrarUsuarios();
+
+            },
+            1000
+        );
+
+    } catch (error) {
+
+        console.error(
+            '❌ Error cargando nueva tarjeta:',
+            error
+        );
+
+        mensaje.classList.add(
+            'mensaje-error'
+        );
+
+        mensaje.textContent =
+            'No se pudo conectar con el servidor';
+
+    }
+
+}
+
+// =====================================================
 // CAMBIAR ESTADO DE TARJETA
+// =====================================================
+
 async function cambiarEstadoTarjeta(
     uid,
     nuevoEstado
 ) {
+
     try {
+
         const respuesta =
             await fetch(
                 `/usuarios/${encodeURIComponent(uid)}/tarjeta`,
                 {
+
                     method: 'POST',
+
                     headers: {
+
                         'Content-Type':
                             'application/json',
+
                         'x-sesion-id':
                             sesionId
+
                     },
+
                     body:
                         JSON.stringify({
+
                             habilitado:
                                 nuevoEstado
+
                         })
+
                 }
             );
+
         const resultado =
             await respuesta.json();
+
         if (!respuesta.ok) {
+
             alert(
                 resultado.error ||
                 'No se pudo cambiar el estado'
             );
+
             return;
+
         }
 
-        // ACTUALIZACIÓN EXITOSA
         console.log(
             '✅ Tarjeta actualizada:',
             resultado.Habilitado
         );
+
         mostrarUsuarios();
+
     } catch (error) {
+
         console.error(
             '❌ Error cambiando tarjeta:',
             error
         );
+
         alert(
             'No se pudo conectar con el servidor'
         );
+
     }
+
 }
+
 </script>
+
 </body>
 </html>

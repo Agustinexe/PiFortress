@@ -1,232 +1,575 @@
+/* =====================================================
+   ESTILOS GENERALES
+===================================================== */
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
     display: flex;
     justify-content: center;
     align-items: center;
+
     min-height: 100vh;
     margin: 0;
+
     background-image: url('/fondo.jpeg');
+
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
 }
 
+
+/* =====================================================
+   VENTANA PRINCIPAL
+===================================================== */
+
 .ventana-navegador {
     background: rgba(255, 255, 255, 0);
+
     border: 1px solid rgba(255, 255, 255, 0.85);
+
     border-radius: 8px;
-    box-shadow:0 10px 30px rgba(0, 0, 0, 0.15);
+
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.15);
+
     width: 550px;
+
     backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(2px);
+
     overflow: hidden;
+
     transition: width 0.4s ease;
 }
 
+
+/* =====================================================
+   TAMAÑO DE LAS DISTINTAS PANTALLAS
+===================================================== */
+
+.ventana-navegador.pantalla-registros {
+    width: 800px;
+}
+
+
+.ventana-navegador.pantalla-usuarios {
+    width: 900px;
+}
+
+
+.ventana-navegador.pantalla-cargar-tarjeta {
+    width: 600px;
+}
+
+
+/* =====================================================
+   BARRA SUPERIOR
+===================================================== */
+
 .barra-superior {
     background: rgba(255, 255, 255, 0.2);
+
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+
     padding: 8px 12px;
+
     display: flex;
     gap: 5px;
 }
 
+
 .puntito {
     width: 5px;
     height: 5px;
+
     background-color: rgba(0, 0, 0, 0.2);
+
     border-radius: 50%;
 }
 
+
+/* =====================================================
+   FORMULARIO DE LOGIN
+===================================================== */
+
 .contenedor-formulario {
     padding: 40px 60px;
+
     text-align: center;
 }
 
+
 .campo {
     margin-bottom: 20px;
+
     text-align: left;
 }
+
 
 label {
     display: block;
+
     margin-bottom: 6px;
+
     color: #2c4a3e;
+
     font-size: 11px;
     font-weight: 600;
+
     letter-spacing: 1.5px;
+
     text-transform: uppercase;
 }
+
 
 input {
     width: 100%;
+
     padding: 10px 12px;
+
     border: 1px solid rgba(0, 0, 0, 0.15);
+
     background-color: rgba(255, 255, 255, 0.65);
+
     font-size: 14px;
+
     color: #333;
+
     box-sizing: border-box;
 }
 
+
 input:focus {
     outline: none;
+
     border-color: #5bb2a9;
+
     background-color: rgba(255, 255, 255, 0.9);
 }
 
+
+/* =====================================================
+   MENSAJES DE ERROR
+===================================================== */
+
 .error-texto {
     color: #b02a37;
+
     font-size: 12px;
+
     margin-top: 6px;
+
     display: none;
+
     font-weight: 500;
 }
 
+
+/* =====================================================
+   BOTONES
+===================================================== */
+
 button {
     background-color: #ffffff;
+
     color: #000000;
+
     border: 1px solid rgba(0, 0, 0, 0.15);
+
     padding: 8px 24px;
+
     font-size: 11px;
+
     font-weight: bold;
+
     text-transform: uppercase;
+
     letter-spacing: 1px;
+
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+
+    box-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.05);
+
     transition: all 0.2s ease;
 }
 
+
 button:hover {
     background-color: #f5f5f5;
+
     border-color: rgba(0, 0, 0, 0.3);
 }
 
+
+/* =====================================================
+   BOTÓN DEL FORMULARIO DE LOGIN
+===================================================== */
+
 .contenedor-boton {
     display: flex;
+
     justify-content: flex-end;
+
     margin-top: 30px;
 }
 
+
+/* =====================================================
+   MENSAJE DE BIENVENIDA
+===================================================== */
+
+.mensaje-bienvenido {
+    color: #2c4a3e;
+
+    margin: 60px 0;
+
+    font-weight: 400;
+
+    letter-spacing: 2px;
+
+    text-transform: uppercase;
+}
+
+
+/* =====================================================
+   PANTALLAS DE REGISTROS Y USUARIOS
+===================================================== */
+
 .contenedor-pantalla {
     padding: 20px;
+
     text-align: left;
 }
 
+
 .encabezado-pantalla {
     display: flex;
+
     justify-content: space-between;
     align-items: center;
+
     margin-bottom: 20px;
+
     gap: 15px;
 }
 
+
 .encabezado-pantalla h2 {
     margin: 0;
+
     color: #2c4a3e;
 }
 
+
+/* =====================================================
+   GRUPO DE BOTONES
+===================================================== */
+
+.grupo-botones {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+
 .btn-accion {
     margin: 0;
+
     padding: 10px 18px;
+
     cursor: pointer;
 }
+
+
+/* =====================================================
+   FILTROS
+===================================================== */
 
 .contenedor-filtros {
     display: flex;
+
     gap: 10px;
+
     margin-bottom: 20px;
+
     flex-wrap: wrap;
 }
 
+
 .contenedor-filtros input {
     width: auto;
+
     flex: 1;
 }
 
+
 .btn-filtrar {
     margin: 0;
+
     padding: 10px 15px;
+
     cursor: pointer;
 }
 
+
+/* =====================================================
+   TABLAS
+===================================================== */
+
 .contenedor-tabla {
     max-height: 350px;
+
     overflow-y: auto;
 }
+
 
 .contenedor-tabla.usuarios {
     max-height: 400px;
 }
 
+
 .tabla {
     width: 100%;
+
     border-collapse: collapse;
+
     background: rgba(255, 255, 255, 0.4);
+
     font-size: 13px;
 }
 
+
 .tabla thead tr {
     background: rgba(0, 0, 0, 0.05);
+
     text-align: left;
 }
+
 
 .tabla th,
 .tabla td {
     padding: 10px;
 }
 
+
 .tabla tbody tr {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom:
+        1px solid rgba(0, 0, 0, 0.05);
 }
+
+
+/* =====================================================
+   COLUMNAS CENTRADAS
+===================================================== */
 
 .centrado {
     text-align: center;
 }
 
+
+/* =====================================================
+   ESTADOS DE LOS REGISTROS
+===================================================== */
+
 .hora-apertura {
     color: green;
+
     font-weight: 500;
 }
+
 
 .hora-cierre {
     color: #b02a37;
+
     font-weight: 500;
 }
 
+
 .cambios {
     font-style: italic;
+
     color: #555;
 }
 
+
 .sin-registros {
     padding: 15px;
+
     text-align: center;
+
     color: #666;
 }
+
+
+/* =====================================================
+   TABLA DE USUARIOS
+===================================================== */
 
 .uid-tarjeta {
     word-break: break-all;
 }
 
+
 .estado-tarjeta {
     font-weight: bold;
 }
+
 
 .sin-tarjeta {
     color: #777;
 }
 
+
 .btn-cambiar-tarjeta {
     margin: 0;
+
     padding: 7px 12px;
+
     cursor: pointer;
 }
 
-.ventana-navegador.pantalla-registros {
-    width: 800px;
+
+/* =====================================================
+   FORMULARIO DE NUEVA TARJETA
+===================================================== */
+
+.formulario-tarjeta {
+    max-width: 500px;
+
+    margin: 0 auto;
 }
 
-.ventana-navegador.pantalla-usuarios {
-    width: 900px;
+
+.formulario-tarjeta .campo {
+    margin-bottom: 20px;
+}
+
+
+.formulario-tarjeta input {
+    background-color:
+        rgba(255, 255, 255, 0.65);
+}
+
+
+/* =====================================================
+   BOTONES DEL FORMULARIO DE TARJETA
+===================================================== */
+
+.botones-formulario {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin-top: 25px;
+}
+
+
+/* =====================================================
+   MENSAJES DEL FORMULARIO DE TARJETA
+===================================================== */
+
+.mensaje-tarjeta {
+    min-height: 18px;
+
+    margin-top: 5px;
+
+    font-size: 12px;
+
+    font-weight: 500;
+}
+
+
+.mensaje-error {
+    color: #b02a37;
+}
+
+
+.mensaje-exito {
+    color: #26734d;
+}
+
+/* =====================================================
+   PANTALLA CREAR CUENTA
+===================================================== */
+
+.ventana-navegador.pantalla-crear-cuenta {
+    width: 650px;
+}
+
+
+.formulario-cuenta {
+    max-width: 500px;
+
+    margin: 0 auto;
+}
+
+
+.formulario-cuenta .campo {
+    margin-bottom: 18px;
+}
+
+
+.formulario-cuenta select {
+    width: 100%;
+
+    padding: 10px 12px;
+
+    border: 1px solid rgba(0, 0, 0, 0.15);
+
+    background-color:
+        rgba(255, 255, 255, 0.65);
+
+    font-size: 14px;
+
+    color: #333;
+
+    box-sizing: border-box;
+}
+
+
+.formulario-cuenta select:focus {
+    outline: none;
+
+    border-color: #5bb2a9;
+
+    background-color:
+        rgba(255, 255, 255, 0.9);
+}
+
+
+/* =====================================================
+   BOTONES DEL LOGIN
+===================================================== */
+
+.contenedor-botones-login {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin-top: 30px;
+}
+
+
+/* =====================================================
+   BOTONES DEL FORMULARIO DE CUENTA
+===================================================== */
+
+.botones-formulario {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin-top: 25px;
 }
