@@ -291,53 +291,112 @@ app.get('/acceso-pendiente', (req, res) => {
 function analizarCambioInventario(texto) {
 
     const textoNormalizado =
-        texto
+        String(texto || '')
             .trim()
-            .toLowerCase();
+            .toLowerCase()
 
-    let movimiento = null;
-
-    // INGRESOS
-    const palabrasIngreso =
-        /\b(ingreso|ingresó|ingresaron|ingresar|ingresa|ingresan|agrego|agregó|agregaron|agregar|agrega|agregan|añado|añadió|añadieron|añadir|añade|añaden|guardo|guardó|guardaron|guardar|guarda|guardan|almaceno|almacenó|almacenaron|almacenar|almacena|almacenan)\b/;
-
-    // RETIROS
-    const palabrasRetiro =
-        /\b(retiro|retiró|retiraron|retirar|retira|retiran|saco|sacó|sacaron|sacar|saca|sacan|quito|quitó|quitaron|quitar|quita|quitan|extraigo|extrajo|extrajeron|extraer|extrae|extraen)\b/;
-
-    if (palabrasIngreso.test(textoNormalizado)) {
-        movimiento = 'ingreso';
+    if (!textoNormalizado) {
+        return null
     }
 
-    if (palabrasRetiro.test(textoNormalizado)) {
-        movimiento = 'retiro';
+    let movimiento = null
+
+    /*
+     * ==================================================
+     * INGRESOS
+     * ==================================================
+     */
+
+    const palabrasIngreso =
+        /\b(ingreso|ingresó|ingresaron|ingresé|ingresaste|ingresar|ingresa|ingresan|agrego|agregó|agregaron|agregué|agregaste|agregar|agrega|agregan|añado|añadió|añadieron|añadí|añadiste|añadir|añade|añaden|guardo|guardó|guardaron|guardé|guardaste|guardar|guarda|guardan|almaceno|almacenó|almacenaron|almacené|almacenaste|almacenar|almacena|almacenan)\b/
+
+    /*
+     * ==================================================
+     * RETIROS
+     * ==================================================
+     */
+
+    const palabrasRetiro =
+        /\b(retiro|retiró|retiraron|retiré|retiraste|retirar|retira|retiran|saco|sacó|sacaron|saqué|sacaste|sacar|saca|sacan|quito|quitó|quitaron|quité|quitaste|quitar|quita|quitan|extraigo|extrajo|extrajeron|extraje|extraí|extraer|extrae|extraen)\b/
+
+    /*
+     * ==================================================
+     * DETERMINAR MOVIMIENTO
+     * ==================================================
+     */
+
+    const esIngreso =
+        palabrasIngreso.test(
+            textoNormalizado
+        )
+
+    const esRetiro =
+        palabrasRetiro.test(
+            textoNormalizado
+        )
+
+    /*
+     * Si aparecen palabras de ambos tipos,
+     * no hacemos ningún movimiento para evitar
+     * modificar incorrectamente el inventario.
+     */
+
+    if (esIngreso && esRetiro) {
+
+        console.log(
+            '⚠️ El cambio contiene palabras de ingreso y retiro:',
+            texto
+        )
+
+        return null
+    }
+
+    if (esIngreso) {
+        movimiento = 'ingreso'
+    }
+
+    if (esRetiro) {
+        movimiento = 'retiro'
     }
 
     if (!movimiento) {
-        console.log('ℹ️ Cambio sin movimiento de inventario:', texto);
-        return null;
+
+        console.log(
+            'ℹ️ Cambio sin movimiento de inventario:',
+            texto
+        )
+
+        return null
     }
 
     /*
-     * -----------------------------------------
+     * ==================================================
      * DINERO
-     * -----------------------------------------
+     * ==================================================
      */
 
     const dinero =
-        textoNormalizado.match(/\$\s*([\d.,]+)/);
+        textoNormalizado.match(
+            /\$\s*([\d.,]+)/
+        )
 
     if (dinero) {
 
         const cantidadTexto =
             dinero[1]
                 .replace(/\./g, '')
-                .replace(/,/g, '');
+                .replace(/,/g, '')
 
         const cantidad =
-            parseInt(cantidadTexto, 10);
+            parseInt(
+                cantidadTexto,
+                10
+            )
 
-        if (!Number.isNaN(cantidad) && cantidad > 0) {
+        if (
+            !Number.isNaN(cantidad) &&
+            cantidad > 0
+        ) {
 
             const movimientoDetectado = {
                 bien: 'Dinero',
@@ -345,27 +404,29 @@ function analizarCambioInventario(texto) {
                     movimiento === 'ingreso'
                         ? cantidad
                         : -cantidad
-            };
+            }
 
             console.log(
                 '💰 Movimiento detectado:',
                 movimientoDetectado
-            );
+            )
 
-            return movimientoDetectado;
+            return movimientoDetectado
         }
     }
 
     /*
-     * -----------------------------------------
+     * ==================================================
      * CANTIDAD DE OBJETOS
-     * -----------------------------------------
+     * ==================================================
      */
 
-    let cantidad = 1;
+    let cantidad = 1
 
     const cantidadEncontrada =
-        textoNormalizado.match(/\b(\d+)\b/);
+        textoNormalizado.match(
+            /\b(\d+)\b/
+        )
 
     if (cantidadEncontrada) {
 
@@ -373,101 +434,312 @@ function analizarCambioInventario(texto) {
             parseInt(
                 cantidadEncontrada[1],
                 10
-            );
+            )
 
         if (
             Number.isNaN(cantidad) ||
             cantidad <= 0
         ) {
-            cantidad = 1;
+            cantidad = 1
         }
     }
 
     /*
-     * -----------------------------------------
+     * ==================================================
      * OBTENER OBJETO
-     * -----------------------------------------
+     * ==================================================
      */
 
     let objeto =
         textoNormalizado
 
-            .replace(/\b\d+\b/g, '')
-
+            /*
+             * Eliminamos números.
+             */
             .replace(
-                /\b(ingreso|ingresó|ingresaron|ingresar|ingresa|ingresan|agrego|agregó|agregaron|agregar|agrega|agregan|añado|añadió|añadieron|añadir|añade|añaden|guardo|guardó|guardaron|guardar|guarda|guardan|almaceno|almacenó|almacenaron|almacenar|almacena|almacenan|retiro|retiró|retiraron|retirar|retira|retiran|saco|sacó|sacaron|sacar|saca|sacan|quito|quitó|quitaron|quitar|quita|quitan|extraigo|extrajo|extrajeron|extraer|extrae|extraen)\b/g,
+                /\b\d+\b/g,
                 ''
             )
 
+            /*
+             * Eliminamos palabras de movimiento.
+             */
+            .replace(
+                /\b(ingreso|ingresó|ingresaron|ingresé|ingresaste|ingresar|ingresa|ingresan|agrego|agregó|agregaron|agregué|agregaste|agregar|agrega|agregan|añado|añadió|añadieron|añadí|añadiste|añadir|añade|añaden|guardo|guardó|guardaron|guardé|guardaste|guardar|guarda|guardan|almaceno|almacenó|almacenaron|almacené|almacenaste|almacenar|almacena|almacenan|retiro|retiró|retiraron|retiré|retiraste|retirar|retira|retiran|saco|sacó|sacaron|saqué|sacaste|sacar|saca|sacan|quito|quitó|quitaron|quité|quitaste|quitar|quita|quitan|extraigo|extrajo|extrajeron|extraje|extraí|extraer|extrae|extraen)\b/g,
+                ''
+            )
+
+            /*
+             * Eliminamos palabras auxiliares.
+             */
             .replace(
                 /\b(un|una|unos|unas|el|la|los|las|de|del|al|se|más|mas)\b/g,
                 ''
             )
 
-            .replace(/[.,;:!?]/g, '')
+            /*
+             * Eliminamos signos.
+             */
+            .replace(
+                /[.,;:!?]/g,
+                ''
+            )
 
-            .replace(/\s+/g, ' ')
+            /*
+             * Normalizamos espacios.
+             */
+            .replace(
+                /\s+/g,
+                ' '
+            )
 
-            .trim();
+            .trim()
+
+    /*
+     * ==================================================
+     * VALIDAR OBJETO
+     * ==================================================
+     */
 
     if (!objeto) {
+
         console.log(
             '⚠️ Se detectó movimiento pero no se encontró objeto:',
             texto
-        );
-        return null;
+        )
+
+        return null
     }
 
     if (
         objeto.length < 2 ||
         objeto.length > 50
     ) {
-        return null;
+        return null
     }
 
     /*
-     * Convertimos algunos plurales simples
-     * a singular para evitar:
+     * ==================================================
+     * CONVERTIR PLURALES A SINGULAR
+     * ==================================================
      *
-     * Reloj
-     * Relojes
+     * Ejemplos:
      *
-     * como elementos separados.
+     * documentos -> documento
+     * relojes    -> reloj
+     * carpetas   -> carpeta
      */
 
-    if (objeto.endsWith('es')) {
-        objeto = objeto.slice(0, -2);
-    }
-    else if (
-        objeto.endsWith('s') &&
-        !objeto.endsWith('ss')
-    ) {
-        objeto = objeto.slice(0, -1);
-    }
+    const palabrasObjeto =
+        objeto.split(' ')
+
+    const palabrasConvertidas =
+        palabrasObjeto.map(
+            palabra => {
+
+                /*
+                 * Ejemplo:
+                 * relojes -> reloj
+                 *
+                 * Solo aplicamos esta conversión
+                 * a palabras suficientemente largas.
+                 */
+
+                if (
+                    palabra.length > 4 &&
+                    palabra.endsWith('es')
+                ) {
+                    return palabra.slice(
+                        0,
+                        -2
+                    )
+                }
+
+                /*
+                 * Ejemplo:
+                 * carpetas -> carpeta
+                 */
+
+                if (
+                    palabra.length > 3 &&
+                    palabra.endsWith('s') &&
+                    !palabra.endsWith('ss')
+                ) {
+                    return palabra.slice(
+                        0,
+                        -1
+                    )
+                }
+
+                return palabra
+            }
+        )
+
+    objeto =
+        palabrasConvertidas.join(' ')
+
+    /*
+     * Primera letra en mayúscula.
+     */
 
     objeto =
         objeto.charAt(0).toUpperCase() +
-        objeto.slice(1);
+        objeto.slice(1)
+
+    /*
+     * ==================================================
+     * CREAR MOVIMIENTO
+     * ==================================================
+     */
 
     const movimientoDetectado = {
+
         bien: objeto,
+
         cantidad:
             movimiento === 'ingreso'
                 ? cantidad
                 : -cantidad
-    };
+    }
 
     console.log(
         '📦 Movimiento de inventario detectado:',
         movimientoDetectado
-    );
+    )
 
-    return movimientoDetectado;
+    return movimientoDetectado
+}
+
+// <--OBTENER EL MOVIMIENTO REALIZADO EN EL INEVTARIO-->
+function obtenerMovimientoInventario(texto) {
+    if (!texto || !String(texto).trim()) {
+        return null
+    }
+
+    return analizarCambioInventario(
+        String(texto).trim()
+    )
+}
+
+
+function actualizarInventario(
+    movimiento,
+    conexionBase,
+    callback
+) {
+    if (!movimiento) {
+        return callback(null)
+    }
+
+    const bien = String(
+        movimiento.bien
+    ).trim()
+
+    const cantidad = Number(
+        movimiento.cantidad
+    )
+
+    if (
+        !bien ||
+        Number.isNaN(cantidad) ||
+        cantidad === 0
+    ) {
+        return callback(null)
+    }
+
+    const sqlBuscar = `
+        SELECT
+            bien_almacenado,
+            cantidad
+        FROM inventario
+        WHERE LOWER(bien_almacenado) = LOWER(?)
+        LIMIT 1
+    `
+
+    conexionBase.query(
+        sqlBuscar,
+        [bien],
+        (error, resultados) => {
+
+            if (error) {
+                return callback(error)
+            }
+
+            /*
+             * EL BIEN TODAVÍA NO EXISTE
+             */
+            if (
+                !resultados ||
+                resultados.length === 0
+            ) {
+
+                if (cantidad < 0) {
+                    return callback(
+                        new Error(
+                            `No hay suficiente ${bien} en el inventario`
+                        )
+                    )
+                }
+
+                const sqlInsertar = `
+                    INSERT INTO inventario
+                    (bien_almacenado, cantidad)
+                    VALUES (?, ?)
+                `
+
+                return conexionBase.query(
+                    sqlInsertar,
+                    [bien, cantidad],
+                    callback
+                )
+            }
+
+            /*
+             * EL BIEN YA EXISTE
+             */
+
+            const cantidadActual =
+                Number(
+                    resultados[0].cantidad
+                ) || 0
+
+            const nuevaCantidad =
+                cantidadActual + cantidad
+
+            /*
+             * NO PERMITIMOS INVENTARIO NEGATIVO
+             */
+            if (nuevaCantidad < 0) {
+                return callback(
+                    new Error(
+                        `No hay suficiente ${bien} en el inventario`
+                    )
+                )
+            }
+
+            const sqlActualizar = `
+                UPDATE inventario
+                SET cantidad = ?
+                WHERE LOWER(bien_almacenado) = LOWER(?)
+            `
+
+            conexionBase.query(
+                sqlActualizar,
+                [
+                    nuevaCantidad,
+                    bien
+                ],
+                callback
+            )
+        }
+    )
 }
 
 // <--GUARDAR DESCRIPCIÓN DEL CAMBIO-->
 app.post('/acceso-pendiente', (req, res) => {
-    const sesionId = req.headers['x-sesion-id']
+
+    const sesionId =
+        req.headers['x-sesion-id']
 
     if (!sesionId) {
         return res.status(401).json({
@@ -475,7 +747,8 @@ app.post('/acceso-pendiente', (req, res) => {
         })
     }
 
-    const sesion = sesiones.get(sesionId)
+    const sesion =
+        sesiones.get(sesionId)
 
     if (!sesion) {
         return res.status(401).json({
@@ -483,14 +756,32 @@ app.post('/acceso-pendiente', (req, res) => {
         })
     }
 
-    const { id_registro, cambios } = req.body
+    const {
+        id_registro,
+        cambios
+    } = req.body
 
-    if (!id_registro || !cambios || !String(cambios).trim()) {
+    if (
+        !id_registro ||
+        !cambios ||
+        !String(cambios).trim()
+    ) {
         return res.status(400).json({
-            error: 'Debes indicar qué cambio realizaste'
+            error:
+                'Debes indicar qué cambio realizaste'
         })
     }
 
+    const cambiosNuevos =
+        String(cambios).trim()
+
+    const movimientoPrueba =
+        obtenerMovimientoInventario(cambiosNuevos)
+
+    console.log('====================================')
+    console.log('📝 CAMBIO RECIBIDO:', cambiosNuevos)
+    console.log('📦 MOVIMIENTO DETECTADO:', movimientoPrueba)
+    console.log('====================================')
     const sqlRegistro = `
         SELECT
             r.id_registro,
@@ -500,96 +791,174 @@ app.post('/acceso-pendiente', (req, res) => {
         FROM registro r
         INNER JOIN usuarios u
             ON r.Uid_tarjeta = u.Uid_tarjeta
-        WHERE r.id_registro = ?
-          AND u.Id_usuario = ?
+        WHERE
+            r.id_registro = ?
+            AND u.Id_usuario = ?
         LIMIT 1
     `
 
     conexion.query(
         sqlRegistro,
-        [id_registro, sesion.Id_usuario],
+        [
+            id_registro,
+            sesion.Id_usuario
+        ],
         (error, resultados) => {
 
             if (error) {
+
                 console.error(
-                    '❌ Error consultando registro pendiente:',
+                    '❌ Error consultando registro:',
                     error
                 )
 
                 return res.status(500).json({
-                    error: 'No se pudo consultar el registro'
+                    error:
+                        'No se pudo consultar el registro'
                 })
             }
 
-            if (!resultados || resultados.length === 0) {
-                return res.status(404).json({
-                    error: 'El registro no existe o no pertenece al usuario'
-                })
-            }
-
-            const registro = resultados[0]
-
-            /*
-             * PRIMERA VEZ QUE SE COMPLETA "CAMBIOS"
-             */
             if (
-                registro.Cambios === null ||
-                String(registro.Cambios).trim() === ''
+                !resultados ||
+                resultados.length === 0
             ) {
 
-                const sqlActualizar = `
-                    UPDATE registro
-                    SET
-                        Cambios = ?,
-                        Fecha_modificacion_cambios = NOW()
-                    WHERE id_registro = ?
-                `
+                return res.status(404).json({
+                    error:
+                        'El registro no existe o no pertenece al usuario'
+                })
+            }
 
-                conexion.query(
-                    sqlActualizar,
-                    [
-                        String(cambios).trim(),
-                        id_registro
-                    ],
-                    (errorActualizar) => {
+            const registro =
+                resultados[0]
 
-                        if (errorActualizar) {
-                            console.error(
-                                '❌ Error guardando cambio:',
-                                errorActualizar
+            /*
+             * ==================================================
+             * PRIMERA VEZ QUE SE COMPLETA "CAMBIOS"
+             * ==================================================
+             */
+
+            if (
+                registro.Cambios === null ||
+                String(
+                    registro.Cambios
+                ).trim() === ''
+            ) {
+
+                const movimiento =
+                    obtenerMovimientoInventario(
+                        cambiosNuevos
+                    )
+
+                /*
+                 * Si el texto contiene un movimiento
+                 * de inventario, lo aplicamos.
+                 */
+                if (movimiento) {
+
+                    actualizarInventario(
+                        movimiento,
+                        conexion,
+                        (errorInventario) => {
+
+                            if (errorInventario) {
+
+                                console.error(
+                                    '❌ Error actualizando inventario:',
+                                    errorInventario
+                                )
+
+                                return res.status(400).json({
+                                    error:
+                                        errorInventario.message
+                                })
+                            }
+
+                            guardarCambioInicial()
+                        }
+                    )
+
+                } else {
+
+                    /*
+                     * El texto no representa un movimiento
+                     * reconocible. Se guarda igualmente
+                     * como cambio normal.
+                     */
+                    guardarCambioInicial()
+                }
+
+                function guardarCambioInicial() {
+
+                    const sqlActualizar = `
+                        UPDATE registro
+                        SET
+                            Cambios = ?,
+                            Fecha_modificacion_cambios = NOW()
+                        WHERE
+                            id_registro = ?
+                    `
+
+                    conexion.query(
+                        sqlActualizar,
+                        [
+                            cambiosNuevos,
+                            id_registro
+                        ],
+                        (errorActualizar) => {
+
+                            if (errorActualizar) {
+
+                                console.error(
+                                    '❌ Error guardando cambio:',
+                                    errorActualizar
+                                )
+
+                                return res.status(500).json({
+                                    error:
+                                        'No se pudo guardar el cambio'
+                                })
+                            }
+
+                            console.log(
+                                '✅ Cambio registrado:',
+                                id_registro
                             )
 
-                            return res.status(500).json({
-                                error: 'No se pudo guardar el cambio'
+                            return res.json({
+                                correcto: true,
+                                mensaje:
+                                    'Cambio registrado correctamente',
+                                puedeModificar: true
                             })
                         }
-
-                        console.log(
-                            '✅ Cambio registrado para el registro:',
-                            id_registro
-                        )
-
-                        return res.json({
-                            correcto: true,
-                            mensaje: 'Cambio registrado correctamente',
-                            puedeModificar: true
-                        })
-                    }
-                )
+                    )
+                }
 
                 return
             }
 
             /*
-             * EL CAMBIO YA HABÍA SIDO COMPLETADO.
-             * AHORA COMPROBAMOS LOS 5 MINUTOS.
+             * ==================================================
+             * EL CAMBIO YA HABÍA SIDO COMPLETADO
+             * ==================================================
              */
 
-            if (!registro.Fecha_modificacion_cambios) {
+            if (
+                !registro.Fecha_modificacion_cambios
+            ) {
+
                 return res.status(403).json({
-                    error: 'Este registro ya fue completado y no puede modificarse'
+                    error:
+                        'Este registro ya fue completado y no puede modificarse'
                 })
             }
+
+            /*
+             * ==================================================
+             * COMPROBAR LOS 5 MINUTOS
+             * ==================================================
+             */
 
             const sqlTiempo = `
                 SELECT
@@ -609,65 +978,176 @@ app.post('/acceso-pendiente', (req, res) => {
                 (errorTiempo, resultadosTiempo) => {
 
                     if (errorTiempo) {
+
                         console.error(
-                            '❌ Error comprobando tiempo de modificación:',
+                            '❌ Error comprobando tiempo:',
                             errorTiempo
                         )
 
                         return res.status(500).json({
-                            error: 'No se pudo comprobar el tiempo disponible'
+                            error:
+                                'No se pudo comprobar el tiempo disponible'
                         })
                     }
 
                     const segundosTranscurridos =
-                        Number(resultadosTiempo[0].segundos_transcurridos)
+                        Number(
+                            resultadosTiempo[0]
+                                .segundos_transcurridos
+                        )
 
-                    const LIMITE_SEGUNDOS = 5 * 60
+                    const LIMITE_SEGUNDOS =
+                        5 * 60
 
-                    if (segundosTranscurridos > LIMITE_SEGUNDOS) {
+                    if (
+                        segundosTranscurridos >
+                        LIMITE_SEGUNDOS
+                    ) {
+
                         return res.status(403).json({
-                            error: 'El período de 5 minutos para modificar el cambio ya terminó',
+                            error:
+                                'El período de 5 minutos para modificar el cambio ya terminó',
                             puedeModificar: false
                         })
                     }
 
-                    const sqlModificar = `
-                        UPDATE registro
-                        SET Cambios = ?
-                        WHERE id_registro = ?
-                    `
+                    /*
+                     * ==================================================
+                     * EDITAR CAMBIO
+                     * ==================================================
+                     */
 
-                    conexion.query(
-                        sqlModificar,
-                        [
-                            String(cambios).trim(),
-                            id_registro
-                        ],
-                        (errorModificar) => {
+                    const movimientoAnterior =
+                        obtenerMovimientoInventario(
+                            registro.Cambios
+                        )
 
-                            if (errorModificar) {
-                                console.error(
-                                    '❌ Error modificando cambio:',
-                                    errorModificar
+                    const movimientoNuevo =
+                        obtenerMovimientoInventario(
+                            cambiosNuevos
+                        )
+
+                    /*
+                     * Primero revertimos el movimiento anterior.
+                     */
+                    if (movimientoAnterior) {
+
+                        const movimientoRevertido = {
+                            bien:
+                                movimientoAnterior.bien,
+
+                            cantidad:
+                                -Number(
+                                    movimientoAnterior.cantidad
                                 )
+                        }
 
-                                return res.status(500).json({
-                                    error: 'No se pudo modificar el cambio'
-                                })
+                        actualizarInventario(
+                            movimientoRevertido,
+                            conexion,
+                            (errorRevertir) => {
+
+                                if (errorRevertir) {
+
+                                    console.error(
+                                        '❌ Error revirtiendo movimiento anterior:',
+                                        errorRevertir
+                                    )
+
+                                    return res.status(400).json({
+                                        error:
+                                            errorRevertir.message
+                                    })
+                                }
+
+                                aplicarMovimientoNuevo()
                             }
+                        )
 
-                            console.log(
-                                '✏️ Cambio modificado para el registro:',
-                                id_registro
+                    } else {
+
+                        aplicarMovimientoNuevo()
+                    }
+
+                    function aplicarMovimientoNuevo() {
+
+                        /*
+                         * Ahora aplicamos el movimiento
+                         * correspondiente al nuevo texto.
+                         */
+                        if (movimientoNuevo) {
+
+                            actualizarInventario(
+                                movimientoNuevo,
+                                conexion,
+                                (errorNuevo) => {
+
+                                    if (errorNuevo) {
+
+                                        console.error(
+                                            '❌ Error aplicando nuevo movimiento:',
+                                            errorNuevo
+                                        )
+
+                                        return res.status(400).json({
+                                            error:
+                                                errorNuevo.message
+                                        })
+                                    }
+
+                                    guardarModificacion()
+                                }
                             )
 
-                            return res.json({
-                                correcto: true,
-                                mensaje: 'Cambio modificado correctamente',
-                                puedeModificar: true
-                            })
+                        } else {
+
+                            guardarModificacion()
                         }
-                    )
+                    }
+
+                    function guardarModificacion() {
+
+                        const sqlModificar = `
+                            UPDATE registro
+                            SET Cambios = ?
+                            WHERE id_registro = ?
+                        `
+
+                        conexion.query(
+                            sqlModificar,
+                            [
+                                cambiosNuevos,
+                                id_registro
+                            ],
+                            (errorModificar) => {
+
+                                if (errorModificar) {
+
+                                    console.error(
+                                        '❌ Error modificando cambio:',
+                                        errorModificar
+                                    )
+
+                                    return res.status(500).json({
+                                        error:
+                                            'No se pudo modificar el cambio'
+                                    })
+                                }
+
+                                console.log(
+                                    '✏️ Cambio modificado:',
+                                    id_registro
+                                )
+
+                                return res.json({
+                                    correcto: true,
+                                    mensaje:
+                                        'Cambio modificado correctamente',
+                                    puedeModificar: true
+                                })
+                            }
+                        )
+                    }
                 }
             )
         }
@@ -940,6 +1420,7 @@ app.get('/registros', (req, res) => {
     let sql = `
         SELECT
             r.id_registro,
+            u.Id_usuario AS Id_usuario,
             u.Nombre_usuario AS Nombre,
             r.Fecha,
             r.Horario_apertura,
@@ -1023,6 +1504,59 @@ app.get('/registros', (req, res) => {
     );
 
 });
+
+// <--ESTADISTICA DE ACCESOS DE CADA USUARIO-->
+app.get('/estadisticas-accesos', (req, res) => {
+
+    const sesionId = req.headers['x-sesion-id']
+
+    if (!sesionId) {
+        return res.status(401).json({
+            error: 'Sesión no válida'
+        })
+    }
+
+    const sesion = sesiones.get(sesionId)
+
+    if (!sesion) {
+        return res.status(401).json({
+            error: 'Sesión expirada o no válida'
+        })
+    }
+
+    const sql = `
+        SELECT
+            u.Nombre_usuario AS Nombre,
+            COUNT(r.id_registro) AS Accesos
+        FROM usuarios u
+        LEFT JOIN registro r
+            ON r.Uid_tarjeta = u.Uid_tarjeta
+        GROUP BY
+            u.Id_usuario,
+            u.Nombre_usuario
+        ORDER BY
+            Accesos DESC,
+            u.Nombre_usuario ASC
+    `
+
+    conexion.query(sql, (error, resultados) => {
+
+        if (error) {
+            console.error(
+                '❌ Error obteniendo estadísticas:',
+                error
+            )
+
+            return res.status(500).json({
+                error: 'Error obteniendo estadísticas'
+            })
+        }
+
+        return res.json(
+            resultados || []
+        )
+    })
+})
 
 // <--MOSTRAR EL INEVNTARIO-->
 app.get('/inventario', (req, res) => {
