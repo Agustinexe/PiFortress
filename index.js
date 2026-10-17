@@ -1412,7 +1412,8 @@ app.post('/rfid', (req, res) => {
 app.get('/registros', (req, res) => {
 
     const {
-        dia,
+        fechaDesde,
+        fechaHasta,
         usuario,
         cambios
     } = req.query;
@@ -1436,14 +1437,40 @@ app.get('/registros', (req, res) => {
 
     const parametros = [];
 
-    // FILTRO POR FECHA
-    if (dia) {
+    // FILTRO POR RANGO DE FECHAS
+    if (fechaDesde && fechaHasta) {
+
+        if (fechaDesde > fechaHasta) {
+            return res.status(400).json({
+                error:
+                    'La fecha inicial no puede ser posterior a la fecha final.'
+            });
+        }
 
         sql += `
-            AND r.Fecha = ?
+            AND r.Fecha BETWEEN ? AND ?
         `;
 
-        parametros.push(dia);
+        parametros.push(
+            fechaDesde,
+            fechaHasta
+        );
+
+    } else if (fechaDesde) {
+
+        sql += `
+            AND r.Fecha >= ?
+        `;
+
+        parametros.push(fechaDesde);
+
+    } else if (fechaHasta) {
+
+        sql += `
+            AND r.Fecha <= ?
+        `;
+
+        parametros.push(fechaHasta);
 
     }
 
@@ -1498,7 +1525,9 @@ app.get('/registros', (req, res) => {
 
             }
 
-            return res.json(resultados);
+            return res.json(
+                resultados || []
+            );
 
         }
     );
@@ -1508,20 +1537,71 @@ app.get('/registros', (req, res) => {
 // <--ESTADISTICA DE ACCESOS DE CADA USUARIO-->
 app.get('/estadisticas-accesos', (req, res) => {
 
-    const sesionId = req.headers['x-sesion-id']
+    const sesionId = req.headers['x-sesion-id'];
 
     if (!sesionId) {
         return res.status(401).json({
             error: 'Sesión no válida'
-        })
+        });
     }
 
-    const sesion = sesiones.get(sesionId)
+    const sesion = sesiones.get(sesionId);
 
     if (!sesion) {
         return res.status(401).json({
             error: 'Sesión expirada o no válida'
-        })
+        });
+    }
+
+    const {
+        fechaDesde,
+        fechaHasta
+    } = req.query;
+
+    // VALIDAR EL ORDEN DE LAS FECHAS
+    if (
+        fechaDesde &&
+        fechaHasta &&
+        fechaDesde > fechaHasta
+    ) {
+        return res.status(400).json({
+            error:
+                'La fecha inicial no puede ser posterior a la fecha final.'
+        });
+    }
+
+    let condicionFechas = '';
+    const parametros = [];
+
+    // FILTRO POR RANGO DE FECHAS
+    if (fechaDesde && fechaHasta) {
+
+        condicionFechas += `
+            AND r.Fecha >= ?
+            AND r.Fecha < DATE_ADD(?, INTERVAL 1 DAY)
+        `;
+
+        parametros.push(
+            fechaDesde,
+            fechaHasta
+        );
+
+    } else if (fechaDesde) {
+
+        condicionFechas += `
+            AND r.Fecha >= ?
+        `;
+
+        parametros.push(fechaDesde);
+
+    } else if (fechaHasta) {
+
+        condicionFechas += `
+            AND r.Fecha < DATE_ADD(?, INTERVAL 1 DAY)
+        `;
+
+        parametros.push(fechaHasta);
+
     }
 
     const sql = `
@@ -1531,32 +1611,38 @@ app.get('/estadisticas-accesos', (req, res) => {
         FROM usuarios u
         LEFT JOIN registro r
             ON r.Uid_tarjeta = u.Uid_tarjeta
+            ${condicionFechas}
         GROUP BY
             u.Id_usuario,
             u.Nombre_usuario
         ORDER BY
             Accesos DESC,
             u.Nombre_usuario ASC
-    `
+    `;
 
-    conexion.query(sql, (error, resultados) => {
+    conexion.query(
+        sql,
+        parametros,
+        (error, resultados) => {
 
-        if (error) {
-            console.error(
-                '❌ Error obteniendo estadísticas:',
-                error
-            )
+            if (error) {
+                console.error(
+                    '❌ Error obteniendo estadísticas:',
+                    error
+                );
 
-            return res.status(500).json({
-                error: 'Error obteniendo estadísticas'
-            })
+                return res.status(500).json({
+                    error:
+                        'Error obteniendo estadísticas'
+                });
+            }
+
+            return res.json(
+                resultados || []
+            );
         }
-
-        return res.json(
-            resultados || []
-        )
-    })
-})
+    );
+});
 
 // <--MOSTRAR EL INEVNTARIO-->
 app.get('/inventario', (req, res) => {
