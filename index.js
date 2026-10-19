@@ -32,27 +32,25 @@ const sesiones = new Map();
 
 // <--VERIFICAR USUARIO-->
 app.post('/verificar', (req, res) => {
-
-    const {
-        Nombre_usuario,
-        Clave
-    } = req.body
+    const { Nombre_usuario, Clave } = req.body;
 
     if (
         !Nombre_usuario ||
-        !Clave
+        Clave === undefined ||
+        Clave === null ||
+        String(Clave).trim() === ''
     ) {
         return res.status(400).json({
-            mensaje:
-            'Completa todos los campos.'
+            valido: false,
+            mensaje: 'Completa todos los campos.'
         });
     }
-    
-    if (/\s/.test(Nombre_usuario)) {
+
+    if (/\s/.test(String(Nombre_usuario))) {
         return res.status(400).json({
-            mensaje:
-            'El usuario no puede contener espacios.'
-        })
+            valido: false,
+            mensaje: 'El usuario no puede contener espacios.'
+        });
     }
 
     const sqlUsuario = `
@@ -61,25 +59,20 @@ app.post('/verificar', (req, res) => {
             Nombre_usuario,
             Correo_electronico,
             Clave,
-            Cargo,
-            Uid_tarjeta
+            Cargo
         FROM usuarios
-        WHERE
-            Nombre_usuario = ?
-            AND Clave = ?
+        WHERE Nombre_usuario = ?
+          AND Clave = ?
         LIMIT 1
     `;
 
     conexion.query(
         sqlUsuario,
-        [
-            Nombre_usuario,
-            Clave
-        ],
+        [Nombre_usuario, Clave],
         (error, resultados) => {
             if (error) {
                 console.error(
-                    '❌ Error buscando usuario:',
+                    'Error buscando usuario:',
                     error
                 );
 
@@ -89,10 +82,7 @@ app.post('/verificar', (req, res) => {
                 });
             }
 
-            if (
-                !resultados ||
-                resultados.length === 0
-            ) {
+            if (!resultados || resultados.length === 0) {
                 return res.json({
                     valido: false,
                     mensaje: 'Alguno de los datos no coincide'
@@ -100,103 +90,22 @@ app.post('/verificar', (req, res) => {
             }
 
             const usuario = resultados[0];
+            const sesionId = crypto.randomUUID();
 
-            // VERIFICAR TARJETA
-            const sqlDispositivo = `
-                SELECT
-                    Uid_tarjeta,
-                    Id_usuario,
-                    Habilitado
-                FROM dispositivos
-                WHERE
-                    Uid_tarjeta = ?
-                    AND Id_usuario = ?
-                LIMIT 1
-            `;
+            const datosUsuario = {
+                Id_usuario: usuario.Id_usuario,
+                Nombre_usuario: usuario.Nombre_usuario,
+                Correo_electronico: usuario.Correo_electronico,
+                Cargo: usuario.Cargo
+            };
 
-            conexion.query(
-                sqlDispositivo,
-                [
-                    usuario.Uid_tarjeta,
-                    usuario.Id_usuario
-                ],
-                (errorDispositivo, dispositivos) => {
-                    if (errorDispositivo) {
-                        console.error(
-                            '❌ Error verificando tarjeta:',
-                            errorDispositivo
-                        );
+            sesiones.set(sesionId, datosUsuario);
 
-                        return res.status(500).json({
-                            valido: false,
-                            mensaje: 'Error verificando la tarjeta'
-                        });
-                    }
-
-                    if (
-                        !dispositivos ||
-                        dispositivos.length === 0
-                    ) {
-
-                        return res.json({
-                            valido: false,
-                            mensaje:
-                                'La tarjeta no está registrada o no está asociada al usuario'
-                        });
-
-                    }
-
-                    const dispositivo =
-                        dispositivos[0];
-
-                    // TARJETA DESHABILITADA
-                    if (
-                        dispositivo.Habilitado !== 'True'
-                    ) {
-
-                        return res.json({
-                            valido: false,
-                            mensaje: 'La tarjeta está deshabilitada'
-                        });
-
-                    }
-
-                    // CREAR SESIÓN
-                    const sesionId =
-                        crypto.randomUUID();
-                    sesiones.set(
-                        sesionId,
-                        {
-                            Id_usuario:
-                                usuario.Id_usuario,
-                            Nombre_usuario:
-                                usuario.Nombre_usuario,
-                            Correo_electronico:
-                                usuario.Correo_electronico,
-                            Cargo:
-                                usuario.Cargo,
-                            Uid_tarjeta:
-                                usuario.Uid_tarjeta
-                        }
-                    );
-                    return res.json({
-                        valido: true,
-                        sesionId,
-                        usuario: {
-                            Id_usuario:
-                                usuario.Id_usuario,
-                            Nombre_usuario:
-                                usuario.Nombre_usuario,
-                            Correo_electronico:
-                                usuario.Correo_electronico,
-                            Cargo:
-                                usuario.Cargo,
-                            Uid_tarjeta:
-                                usuario.Uid_tarjeta
-                        }
-                    });
-                }
-            );
+            return res.json({
+                valido: true,
+                sesionId,
+                usuario: datosUsuario
+            });
         }
     );
 });
@@ -226,30 +135,28 @@ app.get('/acceso-pendiente', (req, res) => {
 
     }
 
-    const sql = `
+    const sql = `        
         SELECT
             r.id_registro,
+            r.Nombre_usuario,
             r.Fecha,
             r.Horario_apertura,
             r.Horario_cierre,
             r.Uid_tarjeta
         FROM registro r
-        INNER JOIN usuarios u
-            ON r.Uid_tarjeta = u.Uid_tarjeta
-        WHERE
-            u.Id_usuario = ?
-            AND (
-                r.Cambios IS NULL
-                OR TRIM(r.Cambios) = ''
-            )
-        ORDER BY
-            r.id_registro DESC
+        WHERE r.Nombre_usuario = ?
+        AND (
+            r.Cambios IS NULL
+            OR TRIM(r.Cambios) = ''
+        )
+        ORDER BY r.id_registro DESC
         LIMIT 1
+
     `
 
     conexion.query(
         sql,
-        [sesion.Id_usuario],
+        [sesion.Nombre_usuario],
         (error, resultados) => {
 
             if (error) {
@@ -621,7 +528,6 @@ function obtenerMovimientoInventario(texto) {
     )
 }
 
-
 function actualizarInventario(
     movimiento,
     conexionBase,
@@ -787,13 +693,11 @@ app.post('/acceso-pendiente', (req, res) => {
             r.id_registro,
             r.Cambios,
             r.Fecha_modificacion_cambios,
-            r.Uid_tarjeta
+            r.Uid_tarjeta,
+            r.Nombre_usuario
         FROM registro r
-        INNER JOIN usuarios u
-            ON r.Uid_tarjeta = u.Uid_tarjeta
-        WHERE
-            r.id_registro = ?
-            AND u.Id_usuario = ?
+        WHERE r.id_registro = ?
+        AND r.Nombre_usuario = ?
         LIMIT 1
     `
 
@@ -801,7 +705,7 @@ app.post('/acceso-pendiente', (req, res) => {
         sqlRegistro,
         [
             id_registro,
-            sesion.Id_usuario
+            sesion.Nombre_usuario
         ],
         (error, resultados) => {
 
@@ -1156,256 +1060,147 @@ app.post('/acceso-pendiente', (req, res) => {
 
 //<--CONEXIÓN AL RFID-->
 app.post('/rfid', (req, res) => {
-
-    const {
-        Uid_tarjeta
-    } = req.body;
+    const { Uid_tarjeta } = req.body;
 
     if (!Uid_tarjeta) {
-
         return res.status(400).json({
             autorizado: false,
-            error:
-                'No se recibió el UID de la tarjeta'
+            error: 'No se recibió el UID de la tarjeta'
         });
-
     }
 
-    const uid =
-        String(Uid_tarjeta)
-            .trim()
-            .toUpperCase();
+    const uid = String(Uid_tarjeta)
+        .trim()
+        .toUpperCase();
 
-    // BUSCAR USUARIO Y TARJETA
     const sqlUsuario = `
         SELECT
             u.Id_usuario,
             u.Nombre_usuario,
-            u.Uid_tarjeta,
+            d.Uid_tarjeta,
             d.Habilitado
-        FROM usuarios u
-        INNER JOIN dispositivos d
+        FROM dispositivos d
+        INNER JOIN usuarios u
             ON u.Id_usuario = d.Id_usuario
-            AND u.Uid_tarjeta = d.Uid_tarjeta
-        WHERE
-            u.Uid_tarjeta = ?
+        WHERE UPPER(TRIM(d.Uid_tarjeta)) = ?
         LIMIT 1
     `;
 
-    conexion.query(
-        sqlUsuario,
-        [uid],
-        (error, resultados) => {
+    conexion.query(sqlUsuario, [uid], (error, resultados) => {
+        if (error) {
+            console.error('Error verificando tarjeta RFID:', error);
+            return res.status(500).json({
+                autorizado: false,
+                error: 'Error interno del servidor'
+            });
+        }
 
-            if (error) {
+        if (!resultados || resultados.length === 0) {
+            return res.status(403).json({
+                autorizado: false,
+                error: 'La tarjeta no está registrada o no está asignada a un usuario'
+            });
+        }
 
-                console.error(
-                    '❌ Error verificando tarjeta RFID:',
-                    error
-                );
+        const usuario = resultados[0];
 
+        // La tarjeta bloqueada no puede abrir ni cerrar la caja.
+        if (String(usuario.Habilitado).trim() !== 'True') {
+            return res.status(403).json({
+                autorizado: false,
+                error: 'La tarjeta está deshabilitada'
+            });
+        }
+
+        const sqlAbierto = `
+            SELECT id_registro
+            FROM registro
+            WHERE Uid_tarjeta = ?
+              AND Horario_cierre IS NULL
+            ORDER BY id_registro DESC
+            LIMIT 1
+        `;
+
+        conexion.query(sqlAbierto, [uid], (errorAbierto, abiertos) => {
+            if (errorAbierto) {
+                console.error('Error buscando acceso abierto:', errorAbierto);
                 return res.status(500).json({
                     autorizado: false,
-                    error:
-                        'Error interno del servidor'
+                    error: 'No se pudo consultar el estado de la caja'
                 });
-
             }
 
-            if (
-                !resultados ||
-                resultados.length === 0
-            ) {
+            // No hay apertura pendiente: registrar apertura.
+            if (!abiertos || abiertos.length === 0) {
+                const sqlAbrir = `
+                    INSERT INTO registro (
+                        Nombre_usuario,
+                        Fecha,
+                        Horario_apertura,
+                        Horario_cierre,
+                        Uid_tarjeta,
+                        Cambios
+                    )
+                    VALUES (?, CURDATE(), CURTIME(), NULL, ?, NULL)
+                `;
 
-                return res.status(403).json({
-                    autorizado: false,
-                    error:
-                        'La tarjeta no está registrada'
-                });
+                return conexion.query(
+                    sqlAbrir,
+                    [usuario.Nombre_usuario, uid],
+                    (errorInsertar, resultado) => {
+                        if (errorInsertar) {
+                            console.error('Error registrando apertura:', errorInsertar);
+                            return res.status(500).json({
+                                autorizado: false,
+                                error: 'No se pudo registrar la apertura'
+                            });
+                        }
 
+                        return res.json({
+                            autorizado: true,
+                            accion: 'apertura',
+                            id_registro: resultado.insertId,
+                            usuario: usuario.Nombre_usuario
+                        });
+                    }
+                );
             }
 
-            const usuario =
-                resultados[0];
+            // Hay una apertura pendiente para esta tarjeta: registrar cierre.
+            const idRegistro = abiertos[0].id_registro;
 
-            // TARJETA DESHABILITADA
-            if (
-                usuario.Habilitado !== 'True'
-            ) {
-
-                return res.status(403).json({
-                    autorizado: false,
-                    error:
-                        'La tarjeta está deshabilitada'
-                });
-
-            }
-
-            // BUSCAR SI LA CAJA ESTÁ ABIERTA
-            const sqlAbierto = `
-                SELECT
-                    id_registro
-                FROM registro
-                WHERE
-                    Uid_tarjeta = ?
-                    AND Horario_cierre IS NULL
-                ORDER BY
-                    id_registro DESC
-                LIMIT 1
+            const sqlCerrar = `
+                UPDATE registro
+                SET Horario_cierre = CURTIME()
+                WHERE id_registro = ?
+                  AND Horario_cierre IS NULL
             `;
 
-            conexion.query(
-                sqlAbierto,
-                [uid],
-                (errorAbierto, registrosAbiertos) => {
-
-                    if (errorAbierto) {
-
-                        console.error(
-                            '❌ Error buscando acceso abierto:',
-                            errorAbierto
-                        );
-
-                        return res.status(500).json({
-                            autorizado: false,
-                            error:
-                                'No se pudo consultar el estado de la caja'
-                        });
-
-                    }
-
-                    // NO HAY APERTURA -> ABRIR
-                    if (
-                        !registrosAbiertos ||
-                        registrosAbiertos.length === 0
-                    ) {
-
-                        const sqlAbrir = `
-                            INSERT INTO registro
-                            (
-                                Fecha,
-                                Horario_apertura,
-                                Horario_cierre,
-                                Uid_tarjeta,
-                                Cambios
-                            )
-                            VALUES
-                            (
-                                CURDATE(),
-                                CURTIME(),
-                                NULL,
-                                ?,
-                                NULL
-                            )
-                        `;
-
-                        return conexion.query(
-                            sqlAbrir,
-                            [uid],
-                            (errorInsertar, resultado) => {
-
-                                if (errorInsertar) {
-
-                                    console.error(
-                                        '❌ Error registrando apertura:',
-                                        errorInsertar
-                                    );
-
-                                    return res.status(500).json({
-                                        autorizado: false,
-                                        error:
-                                            'No se pudo registrar la apertura'
-                                    });
-
-                                }
-
-                                return res.json({
-
-                                    autorizado: true,
-
-                                    accion: 'apertura',
-
-                                    id_registro:
-                                        resultado.insertId,
-
-                                    usuario:
-                                        usuario.Nombre_usuario
-
-                                });
-
-                            }
-                        );
-
-                    }
-
-                    // HAY APERTURA -> CERRAR
-                    const idRegistro =
-                        registrosAbiertos[0].id_registro;
-
-                    const sqlCerrar = `
-                        UPDATE registro
-                        SET
-                            Horario_cierre = CURTIME()
-                        WHERE
-                            id_registro = ?
-                            AND Horario_cierre IS NULL
-                    `;
-
-                    conexion.query(
-                        sqlCerrar,
-                        [idRegistro],
-                        (errorCerrar, resultadoCerrar) => {
-
-                            if (errorCerrar) {
-
-                                console.error(
-                                    '❌ Error registrando cierre:',
-                                    errorCerrar
-                                );
-
-                                return res.status(500).json({
-                                    autorizado: false,
-                                    error:
-                                        'No se pudo registrar el cierre'
-                                });
-
-                            }
-
-                            if (
-                                resultadoCerrar.affectedRows === 0
-                            ) {
-
-                                return res.status(409).json({
-                                    autorizado: false,
-                                    error:
-                                        'La apertura ya fue cerrada'
-                                });
-
-                            }
-
-                            return res.json({
-
-                                autorizado: true,
-
-                                accion: 'cierre',
-
-                                id_registro:
-                                    idRegistro,
-
-                                usuario:
-                                    usuario.Nombre_usuario
-
-                            });
-
-                        }
-                    );
-
+            conexion.query(sqlCerrar, [idRegistro], (errorCerrar, resultadoCerrar) => {
+                if (errorCerrar) {
+                    console.error('Error registrando cierre:', errorCerrar);
+                    return res.status(500).json({
+                        autorizado: false,
+                        error: 'No se pudo registrar el cierre'
+                    });
                 }
-            );
 
-        }
-    );
+                if (resultadoCerrar.affectedRows === 0) {
+                    return res.status(409).json({
+                        autorizado: false,
+                        error: 'La apertura ya fue cerrada'
+                    });
+                }
 
+                return res.json({
+                    autorizado: true,
+                    accion: 'cierre',
+                    id_registro: idRegistro,
+                    usuario: usuario.Nombre_usuario
+                });
+            });
+        });
+    });
 });
 
 // <--OBTENER REGISTROS-->
@@ -1422,7 +1217,7 @@ app.get('/registros', (req, res) => {
         SELECT
             r.id_registro,
             u.Id_usuario AS Id_usuario,
-            u.Nombre_usuario AS Nombre,
+            r.Nombre_usuario AS Nombre,
             r.Fecha,
             r.Horario_apertura,
             r.Horario_cierre,
@@ -1431,7 +1226,7 @@ app.get('/registros', (req, res) => {
             r.Uid_tarjeta
         FROM registro r
         LEFT JOIN usuarios u
-            ON r.Uid_tarjeta = u.Uid_tarjeta
+            ON r.Nombre_usuario = u.Nombre_usuario
         WHERE 1 = 1
     `;
 
@@ -1610,7 +1405,7 @@ app.get('/estadisticas-accesos', (req, res) => {
             COUNT(r.id_registro) AS Accesos
         FROM usuarios u
         LEFT JOIN registro r
-            ON r.Uid_tarjeta = u.Uid_tarjeta
+            ON r.Nombre_usuario = u.Nombre_usuario
             ${condicionFechas}
         GROUP BY
             u.Id_usuario,
@@ -1888,12 +1683,9 @@ app.post('/crear-cuenta', (req, res) => {
 
 // <--OBTENER USUARIOS-->
 app.get('/usuarios', (req, res) => {
-    const administrador =
-        obtenerAdministrador(req, res);
+    const administrador = obtenerAdministrador(req, res);
 
-    if (!administrador) {
-        return;
-    }
+    if (!administrador) return;
 
     const sql = `
         SELECT
@@ -1901,83 +1693,42 @@ app.get('/usuarios', (req, res) => {
             u.Nombre_usuario,
             u.Cargo,
             u.Correo_electronico,
-            u.Uid_tarjeta,
+            d.Uid_tarjeta,
             d.Habilitado
         FROM usuarios u
         LEFT JOIN dispositivos d
             ON u.Id_usuario = d.Id_usuario
-            AND u.Uid_tarjeta = d.Uid_tarjeta
         ORDER BY
-            u.Nombre_usuario
+            u.Nombre_usuario,
+            d.Uid_tarjeta
     `;
 
-
-    conexion.query(
-        sql,
-        (error, resultados) => {
-
-            if (error) {
-
-                console.error(
-                    '❌ Error obteniendo usuarios:',
-                    error
-                );
-
-
-                return res.status(500).json({
-                    error:
-                        'No se pudieron obtener los usuarios'
-                });
-
-            }
-
-
-            return res.json(
-                resultados
-            );
-
+    conexion.query(sql, (error, resultados) => {
+        if (error) {
+            console.error('Error obteniendo usuarios:', error);
+            return res.status(500).json({
+                error: 'No se pudieron obtener los usuarios'
+            });
         }
-    );
 
+        return res.json(resultados || []);
+    });
 });
 
 // <--ASIGNACIÓN DE TARJETA-->
 app.post('/asignar-tarjeta', (req, res) => {
+    const administrador = obtenerAdministrador(req, res);
 
-    // COMPROBAR ADMINISTRADOR
-    const administrador =
-        obtenerAdministrador(req, res);
+    if (!administrador) return;
 
-    if (!administrador) {
-        return;
-    }
+    const { Id_usuario, Cargo, Uid_tarjeta } = req.body;
 
-    // DATOS RECIBIDOS
-    const {
-        Id_usuario,
-        Cargo,
-        Uid_tarjeta
-    } = req.body;
-
-    // VALIDAR DATOS
-    if (
-        !Id_usuario ||
-        !Cargo ||
-        !Uid_tarjeta
-    ) {
-
+    if (!Id_usuario || !Cargo || !Uid_tarjeta) {
         return res.status(400).json({
             correcto: false,
-            mensaje:
-                'Debes seleccionar un usuario, un cargo y una tarjeta'
+            mensaje: 'Debes seleccionar un usuario, un cargo y una tarjeta'
         });
     }
-
-    const uid =
-        String(Uid_tarjeta)
-            .trim()
-            .toUpperCase();
-
 
     const cargosPermitidos = [
         'Administrador/a',
@@ -1986,297 +1737,125 @@ app.post('/asignar-tarjeta', (req, res) => {
         'Secretario/a'
     ];
 
-
-    if (
-        !cargosPermitidos.includes(Cargo)
-    ) {
-
+    if (!cargosPermitidos.includes(Cargo)) {
         return res.status(400).json({
             correcto: false,
-            mensaje:
-                'El cargo seleccionado no es válido'
+            mensaje: 'El cargo seleccionado no es válido'
         });
-
     }
 
-    // COMPROBAR USUARIO
-    const sqlUsuario = `
-        SELECT
-            Id_usuario,
-            Nombre_usuario,
-            Cargo,
-            Uid_tarjeta
-        FROM usuarios
-        WHERE
-            Id_usuario = ?
-        LIMIT 1
-    `;
+    const uid = String(Uid_tarjeta).trim().toUpperCase();
 
-
+    // Comprobar que el usuario exista.
     conexion.query(
-        sqlUsuario,
+        `SELECT Id_usuario, Nombre_usuario
+         FROM usuarios
+         WHERE Id_usuario = ?
+         LIMIT 1`,
         [Id_usuario],
         (errorUsuario, usuarios) => {
-
             if (errorUsuario) {
-
-                console.error(
-                    '❌ Error buscando usuario:',
-                    errorUsuario
-                );
-
-
+                console.error('Error buscando usuario:', errorUsuario);
                 return res.status(500).json({
                     correcto: false,
-                    mensaje:
-                        'No se pudo verificar el usuario'
+                    mensaje: 'No se pudo verificar el usuario'
                 });
-
             }
 
-
-            if (
-                !usuarios ||
-                usuarios.length === 0
-            ) {
-
+            if (!usuarios || usuarios.length === 0) {
                 return res.status(404).json({
                     correcto: false,
-                    mensaje:
-                        'El usuario seleccionado no existe'
+                    mensaje: 'El usuario seleccionado no existe'
                 });
-
             }
 
+            const usuario = usuarios[0];
 
-            const usuario =
-                usuarios[0];
-
-            // COMPROBAR QUE EL USUARIO NO TENGA YA TARJETA
-            if (
-                usuario.Uid_tarjeta &&
-                String(
-                    usuario.Uid_tarjeta
-                ).trim() !== ''
-            ) {
-
-                return res.status(400).json({
-                    correcto: false,
-                    mensaje:
-                        'Este usuario ya tiene una tarjeta asignada'
-                });
-
-            }
-
-            // COMPROBAR TARJETA LIBRE
-            const sqlTarjeta = `
-                SELECT
-                    Uid_tarjeta,
-                    Id_usuario
-                FROM dispositivos
-                WHERE
-                    Uid_tarjeta = ?
-                LIMIT 1
-            `;
-
-
+            // La tarjeta debe existir y todavía no estar asignada.
             conexion.query(
-                sqlTarjeta,
+                `SELECT Uid_tarjeta, Id_usuario
+                 FROM dispositivos
+                 WHERE UPPER(TRIM(Uid_tarjeta)) = ?
+                 LIMIT 1`,
                 [uid],
                 (errorTarjeta, tarjetas) => {
-
                     if (errorTarjeta) {
-
-                        console.error(
-                            '❌ Error verificando tarjeta:',
-                            errorTarjeta
-                        );
-
-
+                        console.error('Error verificando tarjeta:', errorTarjeta);
                         return res.status(500).json({
                             correcto: false,
-                            mensaje:
-                                'No se pudo verificar la tarjeta'
+                            mensaje: 'No se pudo verificar la tarjeta'
                         });
-
                     }
 
-
-                    if (
-                        !tarjetas ||
-                        tarjetas.length === 0
-                    ) {
-
+                    if (!tarjetas || tarjetas.length === 0) {
                         return res.status(404).json({
                             correcto: false,
-                            mensaje:
-                                'La tarjeta no existe'
+                            mensaje: 'La tarjeta no está cargada en el sistema'
                         });
-
                     }
 
-
-                    const tarjeta =
-                        tarjetas[0];
-
-                    // LA TARJETA DEBE ESTAR LIBRE
-                    if (
-                        tarjeta.Id_usuario !== null
-                    ) {
-
+                    if (tarjetas[0].Id_usuario !== null) {
                         return res.status(400).json({
                             correcto: false,
-                            mensaje:
-                                'La tarjeta ya está asignada a otro usuario'
+                            mensaje: 'La tarjeta ya está asignada a un usuario'
                         });
-
                     }
 
-                    // ACTUALIZAR USUARIO
-                    const sqlActualizarUsuario = `
-                        UPDATE usuarios
-                        SET
-                            Cargo = ?,
-                            Uid_tarjeta = ?
-                        WHERE
-                            Id_usuario = ?
-                    `;
-
-
+                    // Asignar tarjeta solo si sigue libre.
                     conexion.query(
-                        sqlActualizarUsuario,
-                        [
-                            Cargo,
-                            uid,
-                            Id_usuario
-                        ],
-                        (errorActualizarUsuario) => {
-
-                            if (errorActualizarUsuario) {
-
-                                console.error(
-                                    '❌ Error actualizando usuario:',
-                                    errorActualizarUsuario
-                                );
-
-
+                        `UPDATE dispositivos
+                         SET Id_usuario = ?
+                         WHERE Uid_tarjeta = ?
+                           AND Id_usuario IS NULL`,
+                        [Id_usuario, tarjetas[0].Uid_tarjeta],
+                        (errorAsignar, resultadoAsignar) => {
+                            if (errorAsignar) {
+                                console.error('Error asignando tarjeta:', errorAsignar);
                                 return res.status(500).json({
                                     correcto: false,
-                                    mensaje:
-                                        'No se pudo configurar el usuario'
+                                    mensaje: 'No se pudo asignar la tarjeta'
                                 });
-
                             }
 
-                            // ASIGNAR TARJETA AL USUARIO
-                            const sqlAsignarTarjeta = `
-                                UPDATE dispositivos
-                                SET
-                                    Id_usuario = ?
-                                WHERE
-                                    Uid_tarjeta = ?
-                                    AND Id_usuario IS NULL
-                            `;
+                            if (resultadoAsignar.affectedRows === 0) {
+                                return res.status(409).json({
+                                    correcto: false,
+                                    mensaje: 'La tarjeta ya no está disponible'
+                                });
+                            }
 
-
+                            // El cargo pertenece al usuario, no a una tarjeta.
                             conexion.query(
-                                sqlAsignarTarjeta,
-                                [
-                                    Id_usuario,
-                                    uid
-                                ],
-                                (errorAsignar, resultadoAsignar) => {
+                                `UPDATE usuarios
+                                 SET Cargo = ?
+                                 WHERE Id_usuario = ?`,
+                                [Cargo, Id_usuario],
+                                (errorCargo) => {
+                                    if (errorCargo) {
+                                        console.error('Error actualizando cargo:', errorCargo);
 
-                                    if (errorAsignar) {
-
-                                        console.error(
-                                            '❌ Error asignando tarjeta:',
-                                            errorAsignar
+                                        // Intentar deshacer la asignación.
+                                        return conexion.query(
+                                            `UPDATE dispositivos
+                                             SET Id_usuario = NULL
+                                             WHERE Uid_tarjeta = ?
+                                               AND Id_usuario = ?`,
+                                            [tarjetas[0].Uid_tarjeta, Id_usuario],
+                                            () => {
+                                                return res.status(500).json({
+                                                    correcto: false,
+                                                    mensaje: 'No se pudo actualizar el cargo del usuario'
+                                                });
+                                            }
                                         );
-
-                                        // DESHACER CAMBIOS DEL USUARIO
-                                        conexion.query(
-                                            `
-                                            UPDATE usuarios
-                                            SET
-                                                Cargo = NULL,
-                                                Uid_tarjeta = NULL
-                                            WHERE
-                                                Id_usuario = ?
-                                            `,
-                                            [Id_usuario]
-                                        );
-
-
-                                        return res.status(500).json({
-                                            correcto: false,
-                                            mensaje:
-                                                'No se pudo asignar la tarjeta'
-                                        });
-
                                     }
-
-
-                                    if (
-                                        resultadoAsignar.affectedRows === 0
-                                    ) {
-
-                                        // DESHACER CAMBIOS DEL USUARIO
-                                        conexion.query(
-                                            `
-                                            UPDATE usuarios
-                                            SET
-                                                Cargo = NULL,
-                                                Uid_tarjeta = NULL
-                                            WHERE
-                                                Id_usuario = ?
-                                            `,
-                                            [Id_usuario]
-                                        );
-
-
-                                        return res.status(400).json({
-                                            correcto: false,
-                                            mensaje:
-                                                'La tarjeta ya no está disponible'
-                                        });
-
-                                    }
-
-                                    // ÉXITO
-                                    console.log(
-                                        '✅ Usuario configurado:',
-                                        usuario.Nombre_usuario
-                                    );
-
-
-                                    console.log(
-                                        '👤 Cargo:',
-                                        Cargo
-                                    );
-
-
-                                    console.log(
-                                        '🪪 Tarjeta asignada:',
-                                        uid
-                                    );
-
 
                                     return res.json({
-
                                         correcto: true,
-
-                                        mensaje:
-                                            'Usuario configurado correctamente',
-
-                                        Id_usuario:
-                                            Id_usuario,
-
-                                        Cargo:
-                                            Cargo,
-
-                                        Uid_tarjeta:
-                                            uid
+                                        mensaje: 'Tarjeta asignada correctamente',
+                                        Id_usuario,
+                                        Cargo,
+                                        Uid_tarjeta: tarjetas[0].Uid_tarjeta
                                     });
                                 }
                             );
@@ -2371,6 +1950,90 @@ app.post('/usuarios/:uid/tarjeta', (req, res) => {
             });
         }
     );
+});
+
+// MODIFICAR EL CARGO DE UN USUARIO
+app.put('/usuarios/:id/cargo', (req, res) => {
+    const administrador = obtenerAdministrador(req, res);
+
+    if (!administrador) {
+        return;
+    }
+
+    const idUsuario = Number(req.params.id);
+    const cargo = req.body.Cargo;
+
+    const cargosPermitidos = [
+        'Administrador/a',
+        'Gerente/a',
+        'Vendedor/a',
+        'Secretario/a'
+    ];
+
+    if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+        return res.status(400).json({
+            error: 'El ID del usuario no es válido.'
+        });
+    }
+
+    if (!cargosPermitidos.includes(cargo)) {
+        return res.status(400).json({
+            error: 'El cargo seleccionado no es válido.'
+        });
+    }
+
+    const sqlBuscar = `
+        SELECT Id_usuario
+        FROM usuarios
+        WHERE Id_usuario = ?
+        LIMIT 1
+    `;
+
+    conexion.query(sqlBuscar, [idUsuario], (error, resultados) => {
+        if (error) {
+            console.error('Error buscando usuario:', error);
+
+            return res.status(500).json({
+                error: 'No se pudo comprobar el usuario.'
+            });
+        }
+
+        if (!resultados || resultados.length === 0) {
+            return res.status(404).json({
+                error: 'No se encontró el usuario.'
+            });
+        }
+
+        const sqlActualizar = `
+            UPDATE usuarios
+            SET Cargo = ?
+            WHERE Id_usuario = ?
+        `;
+
+        conexion.query(
+            sqlActualizar,
+            [cargo, idUsuario],
+            (errorActualizacion) => {
+                if (errorActualizacion) {
+                    console.error(
+                        'Error actualizando cargo:',
+                        errorActualizacion
+                    );
+
+                    return res.status(500).json({
+                        error: 'No se pudo actualizar el cargo.'
+                    });
+                }
+
+                return res.json({
+                    correcto: true,
+                    mensaje: 'Cargo actualizado correctamente.',
+                    Id_usuario: idUsuario,
+                    Cargo: cargo
+                });
+            }
+        );
+    });
 });
 
 // <--CARGAR NUEVA TARJETA-->
