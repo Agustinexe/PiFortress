@@ -32,7 +32,7 @@ const sesiones = new Map();
 
 // <--VERIFICAR USUARIO-->
 app.post('/verificar', (req, res) => {
-    const { Nombre_usuario, Clave } = req.body;
+    const { Nombre_usuario, Clave } = req.body
 
     if (
         !Nombre_usuario ||
@@ -43,14 +43,23 @@ app.post('/verificar', (req, res) => {
         return res.status(400).json({
             valido: false,
             mensaje: 'Completa todos los campos.'
-        });
+        })
     }
 
-    if (/\s/.test(String(Nombre_usuario))) {
+    const nombre = String(Nombre_usuario)
+
+    if (/\s/.test(nombre)) {
         return res.status(400).json({
             valido: false,
             mensaje: 'El usuario no puede contener espacios.'
-        });
+        })
+    }
+
+    if (nombre.length > 20) {
+        return res.status(400).json({
+            valido: false,
+            mensaje: 'El usuario no puede superar los 20 caracteres.'
+        })
     }
 
     const sqlUsuario = `
@@ -64,51 +73,51 @@ app.post('/verificar', (req, res) => {
         WHERE Nombre_usuario = ?
           AND Clave = ?
         LIMIT 1
-    `;
+    `
 
     conexion.query(
         sqlUsuario,
-        [Nombre_usuario, Clave],
+        [nombre, Clave],
         (error, resultados) => {
             if (error) {
                 console.error(
                     'Error buscando usuario:',
                     error
-                );
+                )
 
                 return res.status(500).json({
                     valido: false,
                     mensaje: 'Error interno del servidor'
-                });
+                })
             }
 
             if (!resultados || resultados.length === 0) {
-                return res.json({
+                return res.status(401).json({
                     valido: false,
                     mensaje: 'Alguno de los datos no coincide'
-                });
+                })
             }
 
-            const usuario = resultados[0];
-            const sesionId = crypto.randomUUID();
+            const usuario = resultados[0]
+            const sesionId = crypto.randomUUID()
 
             const datosUsuario = {
                 Id_usuario: usuario.Id_usuario,
                 Nombre_usuario: usuario.Nombre_usuario,
                 Correo_electronico: usuario.Correo_electronico,
                 Cargo: usuario.Cargo
-            };
+            }
 
-            sesiones.set(sesionId, datosUsuario);
+            sesiones.set(sesionId, datosUsuario)
 
             return res.json({
                 valido: true,
                 sesionId,
                 usuario: datosUsuario
-            });
+            })
         }
-    );
-});
+    )
+})
 
 // <--OBTENER ACCESO PENDIENTE DE DESCRIPCIÓN-->
 app.get('/acceso-pendiente', (req, res) => {
@@ -1611,7 +1620,8 @@ app.post('/crear-cuenta', (req, res) => {
         !Nombre_usuario ||
         !Correo_electronico ||
         Clave === undefined ||
-        Clave === null
+        Clave === null ||
+        String(Clave).trim() === ''
     ) {
         return res.status(400).json({
             correcto: false,
@@ -1620,20 +1630,21 @@ app.post('/crear-cuenta', (req, res) => {
     }
 
     const nombre = String(Nombre_usuario).trim()
+    const correo = String(Correo_electronico).trim()
 
-    // No permitir espacios
-    if (/\s/.test(String(Nombre_usuario))) {
+    // No permitir espacios en el nombre
+    if (/\s/.test(nombre)) {
         return res.status(400).json({
             correcto: false,
             mensaje: 'El nombre de usuario no puede contener espacios'
         })
     }
 
-    // Entre 8 y 10 caracteres
-    if (nombre.length < 8 || nombre.length > 10) {
+    // Permitir entre 8 y 20 caracteres
+    if (nombre.length < 8 || nombre.length > 20) {
         return res.status(400).json({
             correcto: false,
-            mensaje: 'El nombre de usuario debe tener entre 8 y 10 caracteres'
+            mensaje: 'El nombre de usuario debe tener entre 8 y 20 caracteres'
         })
     }
 
@@ -1645,20 +1656,18 @@ app.post('/crear-cuenta', (req, res) => {
 
     conexion.query(
         sqlUsuario,
-        [
-            nombre,
-            String(Correo_electronico).trim(),
-            Clave
-        ],
+        [nombre, correo, Clave],
         (errorUsuario, resultadoUsuario) => {
-
             if (errorUsuario) {
-                console.error('❌ Error creando usuario:', errorUsuario)
+                console.error(
+                    'Error creando usuario:',
+                    errorUsuario
+                )
 
                 if (errorUsuario.code === 'ER_DUP_ENTRY') {
-                    return res.status(400).json({
+                    return res.status(409).json({
                         correcto: false,
-                        mensaje: 'El nombre de usuario o correo electrónico ya está registrado'
+                        mensaje: 'Ese nombre de usuario ya se encuentra registrado. Eleja otro.'
                     })
                 }
 
@@ -1668,14 +1677,12 @@ app.post('/crear-cuenta', (req, res) => {
                 })
             }
 
-            const idUsuario = resultadoUsuario.insertId
+            console.log('Usuario creado:', nombre)
 
-            console.log('✅ Usuario creado:', nombre)
-
-            return res.json({
+            return res.status(201).json({
                 correcto: true,
                 mensaje: 'Cuenta creada correctamente',
-                Id_usuario: idUsuario
+                Id_usuario: resultadoUsuario.insertId
             })
         }
     )
