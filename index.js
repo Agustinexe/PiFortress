@@ -31,6 +31,9 @@ app.use(express.urlencoded({
 const sesiones = new Map();
 
 // <--VERIFICAR USUARIO-->
+// Valida el nombre de usuario y la clave, comprueba las credenciales en la base de datos y crea una sesión si son correctas.
+// Qué llama: Consulta la tabla usuarios mediante conexion.query() y genera un identificador con crypto.randomUUID().
+// Qué devuelve: Un JSON con valido, sesionId y usuario, o un mensaje de error con el código HTTP correspondiente.
 app.post('/verificar', (req, res) => {
     const { Nombre_usuario, Clave } = req.body
 
@@ -120,6 +123,9 @@ app.post('/verificar', (req, res) => {
 })
 
 // <--OBTENER ACCESO PENDIENTE DE DESCRIPCIÓN-->
+// Busca el primer registro del usuario autenticado que todavía no tiene una descripción de los cambios realizados.
+// Qué llama: Consulta la tabla registro mediante conexion.query(), utilizando el nombre del usuario guardado en la sesión.
+// Qué devuelve: Un JSON con pendiente: true y los datos del registro, o pendiente: false si no existe ninguno.
 app.get('/acceso-pendiente', (req, res) => {
 
     const sesionId =
@@ -158,7 +164,7 @@ app.get('/acceso-pendiente', (req, res) => {
             r.Cambios IS NULL
             OR TRIM(r.Cambios) = ''
         )
-        ORDER BY r.id_registro DESC
+        ORDER BY r.Fecha ASC, r.Horario_apertura ASC, r.id_registro ASC
         LIMIT 1
 
     `
@@ -204,6 +210,9 @@ app.get('/acceso-pendiente', (req, res) => {
 })
 
 // <--ANALIZAR QUE CAMBIO SE REALIZO EN EL INVENTARIO-->
+// Analiza una descripción textual para identificar ingresos o retiros, el bien involucrado y la cantidad correspondiente.
+// Qué llama: Utiliza expresiones regulares y métodos de cadenas para detectar movimientos, normalizar el texto y convertir los nombres al singular.
+// Qué devuelve: Un objeto con bien y cantidad positiva para ingresos o negativa para retiros, o null si no reconoce un movimiento válido.
 function analizarCambioInventario(texto) {
 
     const textoNormalizado =
@@ -527,6 +536,9 @@ function analizarCambioInventario(texto) {
 }
 
 // <--OBTENER EL MOVIMIENTO REALIZADO EN EL INEVTARIO-->
+// Comprueba que la descripción recibida no esté vacía antes de analizarla.
+// Qué llama: Invoca a analizarCambioInventario() con el texto normalizado.
+// Qué devuelve: El objeto que representa el movimiento del inventario o null si el texto está vacío o no contiene un movimiento reconocible.
 function obtenerMovimientoInventario(texto) {
     if (!texto || !String(texto).trim()) {
         return null
@@ -537,6 +549,9 @@ function obtenerMovimientoInventario(texto) {
     )
 }
 
+// Agrega o descuenta unidades de un bien, impidiendo que la cantidad disponible quede por debajo de cero.
+// Qué llama: Ejecuta consultas SQL para buscar, insertar o actualizar registros de inventario, e invoca el callback para comunicar el resultado.
+// Qué devuelve: No devuelve directamente un valor; comunica el resultado mediante el callback, que recibe null si no hay errores o un error si falla la operación.
 function actualizarInventario(
     movimiento,
     conexionBase,
@@ -651,6 +666,9 @@ function actualizarInventario(
 }
 
 // <--GUARDAR DESCRIPCIÓN DEL CAMBIO-->
+// Registra la descripción de los cambios realizados por el usuario y permite modificarla durante los cinco minutos posteriores a su registro, ajustando el inventario cuando corresponde.
+// Qué llama: Utiliza obtenerMovimientoInventario(), actualizarInventario() y varias consultas SQL para verificar, guardar o modificar el registro y revertir o aplicar movimientos.
+// Qué devuelve: Un JSON con correcto, mensaje y puedeModificar si la operación tiene éxito, o un JSON con error ante un fallo.
 app.post('/acceso-pendiente', (req, res) => {
 
     const sesionId =
@@ -1068,6 +1086,9 @@ app.post('/acceso-pendiente', (req, res) => {
 })
 
 //<--CONEXIÓN AL RFID-->
+// Comprueba si una tarjeta está registrada, asignada y habilitada, y determina si corresponde registrar la apertura o el cierre de la caja.
+// Qué llama: Consulta las tablas dispositivos, usuarios y registro; inserta un registro de apertura o actualiza el horario de cierre según el estado de la tarjeta.
+// Qué devuelve: Un JSON con autorizado, accion, id_registro y usuario si la operación tiene éxito, o un JSON con error si no está autorizada o falla.
 app.post('/rfid', (req, res) => {
     const { Uid_tarjeta } = req.body;
 
@@ -1213,6 +1234,9 @@ app.post('/rfid', (req, res) => {
 });
 
 // <--OBTENER REGISTROS-->
+// Recupera los registros de acceso y permite filtrarlos por rango de fechas, nombre de usuario y descripción de los cambios.
+// Qué llama: Ejecuta una consulta SQL mediante conexion.query(), relacionando las tablas registro y usuarios y aplicando los filtros recibidos.
+// Qué devuelve: Un JSON con la lista de registros encontrados, o un JSON con error si falla la consulta.
 app.get('/registros', (req, res) => {
 
     const {
@@ -1339,6 +1363,9 @@ app.get('/registros', (req, res) => {
 });
 
 // <--ESTADISTICA DE ACCESOS DE CADA USUARIO-->
+// Calcula la cantidad de accesos registrados por cada usuario, opcionalmente dentro de un rango de fechas, después de validar la sesión.
+// Qué llama: Consulta las tablas usuarios y registro, utilizando COUNT(), LEFT JOIN y GROUP BY para calcular y ordenar los resultados.
+// Qué devuelve: Un JSON con los nombres de usuario y sus cantidades de accesos, o un JSON con error si ocurre un problema.
 app.get('/estadisticas-accesos', (req, res) => {
 
     const sesionId = req.headers['x-sesion-id'];
@@ -1449,6 +1476,9 @@ app.get('/estadisticas-accesos', (req, res) => {
 });
 
 // <--MOSTRAR EL INEVNTARIO-->
+// Verifica la sesión del usuario y obtiene los bienes que tienen una cantidad disponible mayor que cero.
+// Qué llama: Consulta la tabla inventario mediante conexion.query(), ordenando los bienes alfabéticamente.
+// Qué devuelve: Un JSON con los bienes y sus cantidades disponibles, o un JSON con error si la sesión no es válida o falla la consulta.
 app.get('/inventario', (req, res) => {
 
     const sesionId =
@@ -1513,6 +1543,9 @@ app.get('/inventario', (req, res) => {
 });
 
 // <--COMPROBAR ADMINISTRADOR-->
+// Verifica que exista una sesión válida y que el usuario tenga el cargo de administrador.
+// Qué llama: Consulta el identificador de sesión en el Map llamado sesiones y normaliza el cargo del usuario para comprobar sus permisos.
+// Qué devuelve: El objeto de sesión si el usuario está autorizado, o null si no hay sesión válida o no tiene permisos suficientes, enviando el error HTTP correspondiente.
 function obtenerAdministrador(req, res) {
     const sesionId =
         req.headers['x-sesion-id'];
@@ -1571,6 +1604,9 @@ function obtenerAdministrador(req, res) {
 }
 
 // <--TARJETAS DISPONIBLES-->
+// Recupera las tarjetas RFID registradas que todavía no están asignadas a ningún usuario.
+// Qué llama: Ejecuta una consulta SQL sobre la tabla dispositivos, filtrando por Id_usuario IS NULL.
+// Qué devuelve: Un JSON con la lista de UID disponibles, o un JSON con error si falla la consulta.
 app.get('/tarjetas-disponibles', (req, res) => {
 
     const sql = `
@@ -1609,6 +1645,9 @@ app.get('/tarjetas-disponibles', (req, res) => {
 });
 
 // <--CREAR CUENTA-->
+// Valida el nombre de usuario, el correo electrónico y la clave antes de registrar una nueva cuenta, comprobando también que el nombre tenga entre 8 y 20 caracteres y no contenga espacios.
+// Qué llama: Ejecuta una consulta INSERT sobre la tabla usuarios mediante conexion.query().
+// Qué devuelve: Un JSON con correcto, mensaje e Id_usuario si la cuenta se crea, o un JSON con mensaje de error si faltan datos, el usuario ya existe o falla la operación.
 app.post('/crear-cuenta', (req, res) => {
     const {
         Nombre_usuario,
@@ -1667,7 +1706,7 @@ app.post('/crear-cuenta', (req, res) => {
                 if (errorUsuario.code === 'ER_DUP_ENTRY') {
                     return res.status(409).json({
                         correcto: false,
-                        mensaje: 'Ese nombre de usuario ya se encuentra registrado. Eleja otro.'
+                        mensaje: 'Ese nombre de usuario ya se encuentra registrado. Elija otro.'
                     })
                 }
 
@@ -1689,6 +1728,9 @@ app.post('/crear-cuenta', (req, res) => {
 })
 
 // <--OBTENER USUARIOS-->
+// Comprueba los permisos de administrador y recupera los datos de los usuarios junto con sus tarjetas y estados de habilitación.
+// Qué llama: Invoca obtenerAdministrador() y ejecuta una consulta SQL que relaciona las tablas usuarios y dispositivos.
+// Qué devuelve: Un JSON con la lista de usuarios y sus datos asociados, o un JSON con error si falla la consulta o la autorización.
 app.get('/usuarios', (req, res) => {
     const administrador = obtenerAdministrador(req, res);
 
@@ -1723,6 +1765,9 @@ app.get('/usuarios', (req, res) => {
 });
 
 // <--ASIGNACIÓN DE TARJETA-->
+// Permite a un administrador asignar una tarjeta disponible a un usuario y establecer su cargo, validando los datos antes de efectuar los cambios.
+// Qué llama: Invoca obtenerAdministrador() y ejecuta consultas SQL para verificar el usuario, comprobar la disponibilidad de la tarjeta, asignarla y actualizar el cargo.
+// Qué devuelve: Un JSON con correcto, mensaje, Id_usuario, Cargo y Uid_tarjeta si la asignación tiene éxito, o un JSON con un mensaje de error.
 app.post('/asignar-tarjeta', (req, res) => {
     const administrador = obtenerAdministrador(req, res);
 
@@ -1875,6 +1920,9 @@ app.post('/asignar-tarjeta', (req, res) => {
 });
 
 // <--CAMBIAR ESTADO DE TARJETA-->
+// Permite a un administrador habilitar o deshabilitar una tarjeta RFID mediante su UID.
+// Qué llama: Invoca obtenerAdministrador() y ejecuta una consulta UPDATE sobre la tabla dispositivos.
+// Qué devuelve: Un JSON con correcto y Habilitado si se actualiza el estado, o un JSON con error si la tarjeta no existe o la operación falla.
 app.post('/usuarios/:uid/tarjeta', (req, res) => {
 
     const administrador =
@@ -1960,6 +2008,9 @@ app.post('/usuarios/:uid/tarjeta', (req, res) => {
 });
 
 // MODIFICAR EL CARGO DE UN USUARIO
+// Valida el identificador del usuario y el cargo seleccionado, y modifica el cargo de un usuario existente si la solicitud está autorizada.
+// Qué llama: Invoca obtenerAdministrador() y ejecuta consultas SQL para comprobar la existencia del usuario y actualizar su cargo en usuarios.
+// Qué devuelve: Un JSON con correcto, mensaje, Id_usuario y Cargo si la modificación tiene éxito, o un JSON con error si falla.
 app.put('/usuarios/:id/cargo', (req, res) => {
     const administrador = obtenerAdministrador(req, res);
 
@@ -2044,6 +2095,9 @@ app.put('/usuarios/:id/cargo', (req, res) => {
 });
 
 // <--CARGAR NUEVA TARJETA-->
+// Registra una nueva tarjeta RFID en el sistema, comprobando que el UID no esté vacío ni se encuentre registrado previamente.
+// Qué llama: Invoca obtenerAdministrador() y ejecuta consultas SQL sobre dispositivos para verificar e insertar la tarjeta.
+// Qué devuelve: Un JSON con correcto, mensaje, Uid_tarjeta e id si la tarjeta se registra, o un JSON con error si la operación falla.
 app.post('/usuarios/tarjetas', (req, res) => {
     const administrador =
         obtenerAdministrador(req, res);
@@ -2168,6 +2222,9 @@ app.post('/usuarios/tarjetas', (req, res) => {
 });
 
 // <--CERRAR SESIÓN-->
+// Finaliza la sesión del usuario eliminando su identificador del registro de sesiones activas.
+// Qué llama: Obtiene el encabezado x-sesion-id y utiliza sesiones.delete() si se recibió un identificador.
+// Qué devuelve: Un JSON con correcto: true, incluso si no se proporcionó un identificador de sesión.
 app.post('/cerrar-sesion', (req, res) => {
     const sesionId =
         req.headers['x-sesion-id'];
@@ -2182,6 +2239,9 @@ app.post('/cerrar-sesion', (req, res) => {
 });
 
 // <--INICIAR SERVIDOR-->
+// Inicia el servidor web de PiFortress, permitiendo que escuche conexiones de red en todas las interfaces disponibles.
+// Qué llama: Utiliza app.listen() con el puerto definido en PORT y ejecuta una función de confirmación que muestra la dirección local en la consola.
+// Qué devuelve: No devuelve una respuesta HTTP directamente; inicia el servidor y muestra un mensaje de confirmación en la consola.
 app.listen(PORT, '0.0.0.0',
     () => {
         console.log('');
